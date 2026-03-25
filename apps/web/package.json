@@ -1,0 +1,40 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "14.2.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "next-auth": "5.0.0-beta.22",
+    "@auth/prisma-adapter": "^2.7.2",
+    "@trpc/server": "^11.0.0",
+    "@trpc/client": "^11.0.0",
+    "@trpc/react-query": "^11.0.0",
+    "@tanstack/react-query": "^5.56.2",
+    "zod": "^3.23.8",
+    "bcryptjs": "^2.4.3",
+    "superjson": "^2.2.1",
+    "@agentic-academy/db": "workspace:*",
+    "@agentic-academy/ai": "workspace:*",
+    "@agentic-academy/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.16.5",
+    "typescript": "^5.5.4",
+    "tailwindcss": "^3.4.13",
+    "postcss": "^8.4.47",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "14.2.15"
+  }
+}

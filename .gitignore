@@ -1,0 +1,26 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Next.js
+apps/web/.next
+apps/web/out
+
+# Build outputs
+dist
+build
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Prisma
+packages/db/src/generated
+
+# Misc
+.DS_Store
+*.log
+.turbo
+coverage
