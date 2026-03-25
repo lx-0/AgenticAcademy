@@ -11,14 +11,24 @@ datasource db {
 
 // Core user model — used by NextAuth credentials provider
 model User {
-  id        String   @id @default(cuid())
-  name      String?
-  email     String   @unique
-  password  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String                @id @default(cuid())
+  name               String?
+  email              String                @unique
+  password           String?
+  role               UserRole              @default(learner)
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  enrollments        Enrollment[]
+  submissions        CredentialSubmission[]
+  reviews            SubmissionReview[]
 
   @@map("users")
+}
+
+enum UserRole {
+  learner
+  reviewer
+  admin
 }
 
 // Public landing page waitlist
@@ -28,4 +38,238 @@ model WaitlistEmail {
   createdAt DateTime @default(now())
 
   @@map("waitlist_emails")
+}
+
+model Course {
+  id          String       @id @default(cuid())
+  title       String
+  description String
+  slug        String       @unique
+  status      CourseStatus @default(draft)
+  duration    Int?         // minutes
+  imageUrl    String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  modules     Module[]
+  enrollments Enrollment[]
+
+  @@map("courses")
+}
+
+enum CourseStatus {
+  draft
+  published
+  archived
+}
+
+model Module {
+  id          String           @id @default(cuid())
+  title       String
+  description String?
+  order       Int
+  duration    Int?             // minutes
+  courseId    String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  course      Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+  progress    ModuleProgress[]
+  assessment  Assessment?
+
+  @@map("modules")
+}
+
+model Lesson {
+  id        String     @id @default(cuid())
+  title     String
+  content   String     // markdown
+  order     Int
+  type      LessonType @default(text)
+  moduleId  String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  module    Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@map("lessons")
+}
+
+enum LessonType {
+  text
+  lab
+  quiz
+}
+
+model Enrollment {
+  id          String           @id @default(cuid())
+  userId      String
+  courseId    String
+  status      EnrollmentStatus @default(active)
+  enrolledAt  DateTime         @default(now())
+  completedAt DateTime?
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress    ModuleProgress[]
+  certificate Certificate?
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+enum EnrollmentStatus {
+  active
+  completed
+  dropped
+}
+
+model ModuleProgress {
+  id           String         @id @default(cuid())
+  enrollmentId String
+  moduleId     String
+  status       ProgressStatus @default(not_started)
+  score        Int?
+  completedAt  DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  enrollment   Enrollment     @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  module       Module         @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, moduleId])
+  @@map("module_progress")
+}
+
+enum ProgressStatus {
+  not_started
+  in_progress
+  completed
+  failed
+}
+
+model Assessment {
+  id           String   @id @default(cuid())
+  moduleId     String   @unique
+  questions    Json     // array of { question, options, correctIndex, explanation }
+  passingScore Int      @default(70) // percentage
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  module       Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@map("assessments")
+}
+
+model Certificate {
+  id             String     @id @default(cuid())
+  credentialId   String     @unique @default(uuid())
+  enrollmentId   String     @unique
+  issuedAt       DateTime   @default(now())
+  certificateUrl String?
+  recipientEmail String?
+  enrollment     Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@map("certificates")
+}
+
+// ─── Tier 1 Credential Submission ────────────────────────────────────────────
+
+enum SubmissionStatus {
+  pending_triage
+  pending_review
+  approved
+  revision_requested
+  rejected
+  payment_required
+}
+
+enum TriageBucket {
+  auto_approve
+  standard_review
+  flag_rejection
+}
+
+enum ReviewDecision {
+  approved
+  revision_requested
+  rejected
+}
+
+model CredentialSubmission {
+  id                  String                 @id @default(cuid())
+  userId              String
+  parentId            String?                // null = initial; set on resubmission
+
+  // Narrative sections
+  beforeState         String
+  whatChanged         String
+  outcomeEvidence     String
+  governanceStatement String
+
+  // Metadata
+  submitterRole       String
+  industry            String
+  modulesCompleted    String[]               // module IDs validated against enrollment
+  implementationDate  DateTime
+  hasAttachment       Boolean                @default(false)
+  attachmentUrl       String?
+  consentToPublish    Boolean                @default(false)
+  wordCount           Int
+
+  // Resubmission tracking (attempt 1 = initial, 2 = free, 3+ = $15 fee)
+  attempt             Int                    @default(1)
+  paymentIntentId     String?                // stub for $15 fee gate
+
+  status              SubmissionStatus       @default(pending_triage)
+
+  user                User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent              CredentialSubmission?  @relation("Resubmissions", fields: [parentId], references: [id])
+  resubmissions       CredentialSubmission[] @relation("Resubmissions")
+  triageResult        TriageResult?
+  review              SubmissionReview?
+
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  @@map("credential_submissions")
+}
+
+model TriageResult {
+  id              String               @id @default(cuid())
+  submissionId    String               @unique
+
+  // Per-criterion scores 0–3
+  scoreWorkflow   Int
+  scoreOutcome    Int
+  scoreGovernance Int
+  scoreRole       Int
+  totalScore      Int
+
+  bucket          TriageBucket
+  flagReason      String?
+  humanAgreed     Boolean?             // null = not yet spot-checked
+
+  submission      CredentialSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  createdAt       DateTime             @default(now())
+
+  @@map("triage_results")
+}
+
+model SubmissionReview {
+  id              String               @id @default(cuid())
+  submissionId    String               @unique
+  reviewerId      String
+
+  // Reviewer scores (may override triage)
+  scoreWorkflow   Int
+  scoreOutcome    Int
+  scoreGovernance Int
+  scoreRole       Int
+  totalScore      Int
+
+  decision        ReviewDecision
+  feedbackMessage String?
+  isSpotCheck     Boolean              @default(false)
+
+  submission      CredentialSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  reviewer        User                 @relation(fields: [reviewerId], references: [id])
+  createdAt       DateTime             @default(now())
+
+  @@map("submission_reviews")
 }
