@@ -129,6 +129,7 @@ export default async function JoinOrgPage({
         <form
           action={async () => {
             "use server";
+            // eslint-disable-next-line react-hooks/rules-of-hooks
             const result = await useInviteAction(token);
             if (!result.error) redirect("/dashboard/team");
             // On error, just go to team page — they'll see a message there
