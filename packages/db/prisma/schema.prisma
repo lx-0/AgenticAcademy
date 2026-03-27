@@ -21,6 +21,7 @@ model User {
   enrollments        Enrollment[]
   submissions        CredentialSubmission[]
   reviews            SubmissionReview[]
+  learnerProfile     LearnerProfile?
 
   @@map("users")
 }
@@ -50,8 +51,9 @@ model Course {
   imageUrl    String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-  modules     Module[]
-  enrollments Enrollment[]
+  modules       Module[]
+  enrollments   Enrollment[]
+  learningPaths LearningPath[]
 
   @@map("courses")
 }
@@ -73,8 +75,9 @@ model Module {
   updatedAt   DateTime         @updatedAt
   course      Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons     Lesson[]
-  progress    ModuleProgress[]
-  assessment  Assessment?
+  progress         ModuleProgress[]
+  assessment       Assessment?
+  recommendations  PathRecommendation[]
 
   @@map("modules")
 }
@@ -166,6 +169,99 @@ model Certificate {
   enrollment     Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
 
   @@map("certificates")
+}
+
+// ─── M3: Personalization Engine ──────────────────────────────────────────────
+
+enum ExperienceLevel {
+  beginner
+  intermediate
+  advanced
+}
+
+enum LearningPace {
+  slow
+  moderate
+  fast
+}
+
+enum MasteryLevel {
+  novice
+  familiar
+  proficient
+  expert
+}
+
+model LearnerProfile {
+  id              String         @id @default(cuid())
+  userId          String         @unique
+  role            String         // e.g. "software engineer", "data scientist"
+  experienceLevel ExperienceLevel @default(beginner)
+  learningGoals   String[]       // array of goal strings
+  preferredPace   LearningPace   @default(moderate)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  learnerSkills   LearnerSkill[]
+  learningPaths   LearningPath[]
+
+  @@map("learner_profiles")
+}
+
+model SkillMap {
+  id            String         @id @default(cuid())
+  name          String         @unique
+  description   String
+  prerequisites String[]       // array of SkillMap IDs
+  moduleId      String?        // optional link to a specific module
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  learnerSkills LearnerSkill[]
+
+  @@map("skill_maps")
+}
+
+model LearnerSkill {
+  id        String         @id @default(cuid())
+  profileId String
+  skillId   String
+  mastery   MasteryLevel   @default(novice)
+  updatedAt DateTime       @updatedAt
+  profile   LearnerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  skill     SkillMap       @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, skillId])
+  @@map("learner_skills")
+}
+
+model LearningPath {
+  id             String               @id @default(cuid())
+  profileId      String
+  courseId       String
+  moduleSequence String[]             // ordered module IDs — may differ from default order
+  rationale      String?              // AI-generated explanation for this path
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  profile        LearnerProfile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  course         Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  recommendations PathRecommendation[]
+
+  @@unique([profileId, courseId])
+  @@map("learning_paths")
+}
+
+model PathRecommendation {
+  id        String       @id @default(cuid())
+  pathId    String
+  moduleId  String
+  reasoning String       // AI reasoning for recommending this module next
+  priority  Int          @default(0)
+  dismissed Boolean      @default(false)
+  createdAt DateTime     @default(now())
+  path      LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  module    Module       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@map("path_recommendations")
 }
 
 // ─── Tier 1 Credential Submission ────────────────────────────────────────────
