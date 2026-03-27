@@ -1,0 +1,103 @@
+{
+  "module": "module-02-orchestration",
+  "title": "Module 2 Assessment: Orchestration and Coordination",
+  "passing_threshold": 0.70,
+  "questions": [
+    {
+      "id": "m2q1",
+      "question": "You have a task routing system where task descriptions are free-form and unpredictable. New task types emerge monthly. Which routing strategy is MOST appropriate as the primary strategy?",
+      "options": [
+        "Deterministic routing rules — most reliable and auditable",
+        "LLM-based routing — handles free-form descriptions and novel task types",
+        "Round-robin routing — fairest distribution across agents",
+        "Manual routing — ensures human oversight for all tasks"
+      ],
+      "correctAnswer": 1,
+      "explanation": "LLM-based routing handles free-form descriptions and novel task types that can't be captured by deterministic rules. Deterministic rules require upfront knowledge of all task types, which this scenario lacks."
+    },
+    {
+      "id": "m2q2",
+      "question": "Agent A hands off to Agent B with only the result string: 'Analysis complete. Revenue is down 12%.' Agent B needs to produce recommendations. What is the PRIMARY problem with this handoff?",
+      "options": [
+        "The result is too long",
+        "Context loss — Agent B doesn't know the original goal, data sources, or what period the 12% refers to",
+        "The handoff uses the wrong protocol",
+        "Agent B should have been run concurrently with Agent A"
+      ],
+      "correctAnswer": 1,
+      "explanation": "This is the thin handoff anti-pattern. Agent B receives the conclusion but not the context needed to use it correctly: what time period? which revenue stream? what data sources? what caveats apply? Without this context, Agent B's recommendations may be incorrect or inappropriate."
+    },
+    {
+      "id": "m2q3",
+      "question": "You're running 50 concurrent research agents all calling the same external search API. The API allows 10 requests per second. What mechanism should you use to prevent rate limit errors?",
+      "options": [
+        "Circuit breaker — it will automatically stop calls when rate limits are hit",
+        "Dead-letter queue — failed calls will be retried later",
+        "Semaphore-based concurrency control limiting concurrent API calls",
+        "Load balancing — distribute calls across multiple API endpoints"
+      ],
+      "correctAnswer": 2,
+      "explanation": "A semaphore limits the number of concurrent API calls, preventing rate limit errors by ensuring you never exceed the API's rate limit. A circuit breaker helps recover after rate limits are hit, but doesn't prevent hitting them in the first place."
+    },
+    {
+      "id": "m2q4",
+      "question": "Two agents read shared state version 5 simultaneously, both make updates, and both write. The final state only contains one agent's changes. What is this failure called and how is it prevented?",
+      "options": [
+        "Deadlock — prevented by using timeouts",
+        "Race condition / lost update — prevented by using compare-and-swap with version checking",
+        "Context bleed — prevented by namespacing state",
+        "Silent failure — prevented by schema validation"
+      ],
+      "correctAnswer": 1,
+      "explanation": "This is the lost update problem, a classic race condition in concurrent state management. Compare-and-swap with version checking prevents it: each write must specify the expected version, and writes that encounter a version mismatch fail and must retry."
+    },
+    {
+      "id": "m2q5",
+      "question": "A circuit breaker has been triggered OPEN after 5 consecutive failures. 75 seconds later (configured timeout is 60s), a new request comes in. What happens?",
+      "options": [
+        "The request fails immediately — the circuit stays open until manually reset",
+        "The circuit transitions to HALF-OPEN and allows one trial request through",
+        "The circuit automatically transitions to CLOSED and allows all requests",
+        "The request is queued until the circuit closes"
+      ],
+      "correctAnswer": 1,
+      "explanation": "After the open timeout expires, the circuit transitions to HALF-OPEN, allowing one trial request. If the trial succeeds, the circuit transitions back to CLOSED. If it fails, it returns to OPEN with a reset timeout."
+    },
+    {
+      "id": "m2q6",
+      "question": "Which merge strategy is MOST appropriate when 5 parallel agents each produce an independent assessment of whether a transaction is fraudulent (yes/no)?",
+      "options": [
+        "Concatenation — combine all assessments into a list",
+        "LLM synthesis — have a synthesizer agent read all assessments and write a summary",
+        "Voting — the majority decision wins, with confidence = votes/total",
+        "Priority ordering — use the most specialized agent's assessment only"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Voting is ideal for decisions where multiple independent agents make the same yes/no judgment. The majority wins, and confidence (votes/total) tells you how strong the consensus is. A split vote can trigger human review."
+    },
+    {
+      "id": "m2q7",
+      "question": "An agent retries a 'send_welcome_email' task after a timeout. The user receives two welcome emails. What principle was violated?",
+      "options": [
+        "Circuit breaker isolation",
+        "Idempotency — the operation was retried but was not idempotent",
+        "Dead-letter queuing",
+        "Concurrency control"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Idempotency was violated. The 'send_welcome_email' operation is not idempotent — executing it twice has different effects than executing it once. Only idempotent operations should be automatically retried. Non-idempotent operations require deduplication mechanisms or manual retry confirmation."
+    },
+    {
+      "id": "m2q8",
+      "question": "In a fan-out/fan-in system with 10 workers, 3 fail with timeout errors and 7 succeed. The task requires at least 8 successful results. What is the appropriate handling strategy?",
+      "options": [
+        "Proceed with the 7 results — partial is better than none",
+        "Fail immediately — any partial failure means the whole task fails",
+        "Retry the 3 failed tasks; if they still fail after retry, escalate or use DLQ",
+        "Run all 10 tasks again from the start"
+      ],
+      "correctAnswer": 2,
+      "explanation": "The timeout errors are likely transient. Retrying the 3 failed tasks is the appropriate first step. If they succeed, you'll meet the 8-result minimum. If they fail again after retry, escalate or dead-letter those tasks. Running all 10 from scratch wastes the 7 successful results."
+    }
+  ]
+}

@@ -1,0 +1,127 @@
+{
+  "module": "module-01-governance-foundations",
+  "title": "Module 1 Assessment: Governance Foundations for Agentic Systems",
+  "passing_threshold": 0.70,
+  "questions": [
+    {
+      "id": "m1q1",
+      "question": "An agent is given the goal 'respond to all open customer support tickets.' It correctly closes tickets, but it also archives tickets it considers 'spam' — including some that are legitimate complaints. What is the PRIMARY governance failure illustrated here?",
+      "options": [
+        "Insufficient audit trail — the archiving actions were not logged",
+        "Goal underspecification — the goal lacked constraints preventing the agent from taking archiving actions",
+        "Missing HITL — a human should have reviewed every ticket before the agent acted",
+        "Weak input guardrails — the agent should not have been able to receive spam tickets"
+      ],
+      "correctAnswer": 1,
+      "explanation": "The agent was goal-directed and acted within what it understood its goal to be. The governance failure is that 'respond to all open tickets' did not specify what the agent is NOT allowed to do (archive, delete, reclassify). Goal underspecification is one of the three properties that make agentic governance fundamentally different from traditional software governance."
+    },
+    {
+      "id": "m1q2",
+      "question": "Under the EU AI Act, an AI system used by an HR department to automatically route job applications to hiring managers falls into which risk tier?",
+      "options": [
+        "Unacceptable risk — automated employment decisions are prohibited",
+        "High risk — employment and worker management is an explicitly listed high-risk category",
+        "Limited risk — the system must disclose it is AI but has no other obligations",
+        "Minimal risk — routing is administrative, not a significant employment decision"
+      ],
+      "correctAnswer": 1,
+      "explanation": "The EU AI Act explicitly lists AI used in employment, workers management, and access to self-employment as a high-risk category. Routing job applications affects who gets considered for positions — this is an employment decision with significant impact on individuals. High-risk status triggers obligations including automatic logging, human oversight mechanisms, and technical documentation."
+    },
+    {
+      "id": "m1q3",
+      "question": "An agent processing customer support tickets has access to the full customer database. The developer says 'we gave it broad access so it doesn't fail if it needs data we didn't anticipate.' What principle does this violate?",
+      "options": [
+        "Data minimization and least privilege — agents should have only the access needed for the task",
+        "Purpose limitation — the agent is not allowed to access data collected for other purposes",
+        "Non-repudiation — access without constraints prevents attribution",
+        "Scope boundary — the agent has no defined boundary at all"
+      ],
+      "correctAnswer": 0,
+      "explanation": "Both data minimization (GDPR) and least privilege (security principle) are violated. Giving an agent broad access 'just in case' is a common governance anti-pattern. The correct approach is to analyze what data the agent actually needs for its task and provide only that access — with the ability to expand access through a controlled process if needed."
+    },
+    {
+      "id": "m1q4",
+      "question": "A compliance officer asks 'what guardrails are in place for this agent?' The engineer responds 'we have a policy that agents must not expose PII in their outputs.' This response is BEST characterized as:",
+      "options": [
+        "A complete answer — policy documentation is the required form of a guardrail",
+        "An incomplete answer — a policy exists but no control (implemented enforcement mechanism) was described",
+        "An incorrect answer — guardrails only refer to input validation, not output policies",
+        "An appropriate answer for a compliance conversation, though more technical detail could be added"
+      ],
+      "correctAnswer": 1,
+      "explanation": "The compliance officer asked about guardrails — implemented control mechanisms. The engineer described a policy (a written statement of what is required). These are different things. A complete answer would describe the technical mechanism: 'we have an output filter that runs all agent responses through a PII detection model and blocks any response containing more than one PII field.' Without a control, the policy is unenforceable."
+    },
+    {
+      "id": "m1q5",
+      "question": "Which of the following is a valid use of GDPR Article 22 'right not to be subject to automated decisions'?",
+      "options": [
+        "A customer demands that an agent be shut down entirely because they don't want AI in the company",
+        "An employee disputes an automatic expense rejection and requests human review of the decision",
+        "A developer claims the right to prevent their code from being analyzed by automated tools",
+        "A company refuses to comply with GDPR because their AI decisions are not 'solely automated' — a human reviews flagged cases"
+      ],
+      "correctAnswer": 1,
+      "explanation": "GDPR Article 22 gives data subjects the right to request human review of significant automated decisions. An expense rejection is a significant automated decision that affects an employee financially. The company must have a human review path available. Note that Article 22 only restricts 'solely automated' decisions — if a human genuinely reviews and can override the decision, Article 22 may not apply, but the human review must be substantive, not rubber-stamping."
+    },
+    {
+      "id": "m1q6",
+      "question": "An engineer says 'our agentic system is covered by our existing cyber liability insurance.' What should the legal/compliance team verify?",
+      "options": [
+        "Nothing — cyber liability policies automatically cover all technology systems including AI",
+        "Whether the policy explicitly covers AI-initiated actions and agent outputs, not just data breaches",
+        "Whether the model provider's liability protects against downstream claims",
+        "Whether the system uses open-source components, which some policies exclude"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Standard cyber liability policies were written before agentic AI and typically cover data breaches and cyber incidents. AI-specific liability — such as financial harm caused by an agent's incorrect decision, or GDPR violations triggered by an agent's data access patterns — may not be covered. The legal team must review policy language specifically for AI-initiated actions and agent outputs."
+    },
+    {
+      "id": "m1q7",
+      "question": "Which governance layer must exist BEFORE the first production deployment?",
+      "options": [
+        "Incident response — you need to know what to do if something goes wrong before it goes wrong",
+        "Human-in-the-loop controls — HITL is required for all production agentic systems",
+        "Audit trail — you cannot retrospectively recover the execution history if you don't log it from day one",
+        "Runtime guardrails — without guardrails, the agent is too risky to deploy"
+      ],
+      "correctAnswer": 2,
+      "explanation": "The audit trail is the only non-negotiable before deployment. Without it, you have no record of what happened if an incident occurs — you cannot investigate, comply with regulatory requests for records, or even confirm what the agent actually did. HITL and guardrails are critical but can be added incrementally. Incident response can be drafted in parallel. But a missing audit trail from day one means that period of production operation is permanently unauditable."
+    },
+    {
+      "id": "m1q8",
+      "question": "An agent sends ~200 employee records from EU-based employees to an OpenAI API in the US for processing. What regulatory issue does this raise?",
+      "options": [
+        "None — major AI providers have adequate data protection",
+        "Potential GDPR violation — personal data transfer to the US requires a valid transfer mechanism (Standard Contractual Clauses, adequacy decision, or similar)",
+        "EU AI Act violation — high-risk systems cannot use non-EU AI providers",
+        "NIST AI RMF violation — MAP function requires domestic data processing"
+      ],
+      "correctAnswer": 1,
+      "explanation": "GDPR restricts transfers of EU personal data to countries outside the EEA that don't have an adequacy decision. The US does not have a blanket adequacy decision (the EU-US Data Privacy Framework provides a mechanism for certified US companies, but it requires the recipient to be certified and a DPA to be in place). Before sending EU employee PII to a US-based API, the team must verify a valid transfer mechanism is in place."
+    },
+    {
+      "id": "m1q9",
+      "question": "What distinguishes 'adequate oversight' from 'monitoring' in the context of agentic governance?",
+      "options": [
+        "Adequate oversight is a legal standard; monitoring is an engineering practice. They serve different purposes and are not interchangeable",
+        "Monitoring observes what happened; adequate oversight requires that humans can intervene AND that intervention is actually exercised AND documented",
+        "Adequate oversight requires real-time human review of all agent actions; monitoring allows retrospective review",
+        "They are synonymous — having monitoring in place constitutes adequate oversight under current regulatory frameworks"
+      ],
+      "correctAnswer": 1,
+      "explanation": "The 'adequate oversight' standard (from EU AI Act and emerging case law) requires three things: oversight must be technically possible, practically exercised, and documented. 'We have monitoring' satisfies only the first condition — technically possible. If nobody watches the monitoring, it is not practically exercised. If there are no records of review, it is not documented. Adequate oversight is more demanding than having dashboards."
+    },
+    {
+      "id": "m1q10",
+      "question": "A team argues 'we'll add governance after we validate the product works.' What is the specific risk this creates?",
+      "options": [
+        "The product cannot be legally deployed until governance is in place — this creates a launch delay",
+        "Retrofitting governance requires architectural changes that cannot easily be added after deployment; governance debt compounds",
+        "The product will lack governance vocabulary, making compliance conversations difficult",
+        "Regulators will view the lack of initial governance as evidence of bad faith"
+      ],
+      "correctAnswer": 1,
+      "explanation": "The specific risk is architectural: the decisions that enable good governance — structured logging with correlation IDs, explicit action approval checkpoints, scoped tool access — cannot easily be added after the fact without significant rework. A system built without an audit trail cannot have a complete audit trail added without rebuilding the logging infrastructure. A system built with overly broad access cannot be least-privilege'd without analyzing and restricting each tool's scope. 'Add governance later' consistently fails because governance is architectural, not additive."
+    }
+  ]
+}

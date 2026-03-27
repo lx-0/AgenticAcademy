@@ -22,7 +22,12 @@ export function RegisterForm() {
   return (
     <form action={action} className="space-y-4">
       {state?.error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+        <div
+          id="register-error"
+          role="alert"
+          aria-live="polite"
+          className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm"
+        >
           {state.error}
         </div>
       )}
@@ -40,6 +45,8 @@ export function RegisterForm() {
           type="text"
           required
           autoComplete="name"
+          aria-invalid={state?.error ? true : undefined}
+          aria-describedby={state?.error ? "register-error" : undefined}
           className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-gray-900 placeholder-gray-400 text-sm"
           placeholder="Jane Smith"
         />
@@ -58,6 +65,8 @@ export function RegisterForm() {
           type="email"
           required
           autoComplete="email"
+          aria-invalid={state?.error ? true : undefined}
+          aria-describedby={state?.error ? "register-error" : undefined}
           className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-gray-900 placeholder-gray-400 text-sm"
           placeholder="you@company.com"
         />
@@ -77,6 +86,8 @@ export function RegisterForm() {
           required
           minLength={8}
           autoComplete="new-password"
+          aria-invalid={state?.error ? true : undefined}
+          aria-describedby={state?.error ? "register-error" : undefined}
           className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-gray-900 placeholder-gray-400 text-sm"
           placeholder="8+ characters"
         />

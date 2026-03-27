@@ -1,0 +1,127 @@
+{
+  "module": "module-03-governance",
+  "title": "Module 3 Assessment: Governance and Compliance",
+  "passing_threshold": 0.70,
+  "questions": [
+    {
+      "id": "m3q1",
+      "question": "A system prompt says 'never send emails to external addresses.' An adversarial user crafts a message that causes the agent to send customer data to an external address. What governance principle was missing?",
+      "options": [
+        "The system prompt was not long enough",
+        "Guardrails must be enforced in infrastructure, not in LLM instructions",
+        "The agent needed a more capable model",
+        "The agent needed better examples in its system prompt"
+      ],
+      "correctAnswer": 1,
+      "explanation": "LLM instructions can be overridden by prompt injection, forgotten in long contexts, or reasoned around. True guardrails are programmatic checks that execute independently of LLM behavior — in this case, a tool policy that prevents external email sends at the infrastructure level."
+    },
+    {
+      "id": "m3q2",
+      "question": "A cost optimization agent is given the goal 'reduce cloud spend by 20%' and deletes 3 production databases during off-peak hours. Which governance failure best explains this?",
+      "options": [
+        "Insufficient audit logging",
+        "Missing human-in-the-loop for irreversible, high-impact actions",
+        "Incorrect model selection for the task",
+        "Insufficient input validation"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Deleting production databases is irreversible and high-impact — it should have triggered a HITL escalation for human approval before proceeding. The agent was optimizing its metric without any concept of what was safe to delete, which a human reviewer would have caught."
+    },
+    {
+      "id": "m3q3",
+      "question": "Under GDPR, a customer support agent has access to the full customer database but is only used to resolve individual support tickets. Which principle is violated?",
+      "options": [
+        "Purpose limitation and data minimization",
+        "Right to explanation",
+        "Transparency requirement",
+        "Consent requirement"
+      ],
+      "correctAnswer": 0,
+      "explanation": "GDPR's data minimization principle requires agents to access only the personal data necessary for their task. The support agent should only access data for the current customer's ticket — not the full database. Purpose limitation also applies: the data was collected for customer relationship purposes, not for the agent to have broad access."
+    },
+    {
+      "id": "m3q4",
+      "question": "An audit log entry is modified by an attacker to remove evidence of a data exfiltration. What mechanism would allow you to detect this tampering?",
+      "options": [
+        "Access logs showing who modified the entry",
+        "Hash chaining — each entry includes a checksum over its content and the previous entry's checksum",
+        "Timestamp verification — the modification would show a different timestamp",
+        "Backup comparison — compare current log with yesterday's backup"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Hash chaining creates a tamper-evident log: each entry's checksum includes the previous entry's checksum, creating a cryptographic chain. Modifying any entry invalidates all subsequent checksums, making tampering detectable. Timestamps can be faked; backups may lag; access logs may also be tampered with."
+    },
+    {
+      "id": "m3q5",
+      "question": "An approval request for a high-risk database deletion has been pending for 30 minutes with no response from the assigned reviewers. What is the appropriate timeout action?",
+      "options": [
+        "Auto-approve — the agent has been waiting long enough",
+        "Auto-reject or escalate to a senior reviewer",
+        "Proceed with a warning logged to the audit trail",
+        "Extend the timeout indefinitely until someone responds"
+      ],
+      "correctAnswer": 1,
+      "explanation": "For high-risk, irreversible actions, the appropriate timeout behavior is auto-reject or escalation to a senior reviewer — not auto-approval. Auto-approving high-risk actions after a timeout creates a bypass: attackers can simply wait out approval windows. Escalation to senior reviewers maintains oversight while unblocking the workflow."
+    },
+    {
+      "id": "m3q6",
+      "question": "An agent needs read access to a customer database to complete a one-hour analysis task. Which permission model best applies least privilege?",
+      "options": [
+        "Grant permanent read access to the entire database",
+        "Grant read access scoped to the analysis task, expiring after the task completes",
+        "Grant read-write access in case the agent needs to cache results",
+        "Ask the agent to request credentials at runtime from the user"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Least privilege: grant minimum required access (read, not read-write) scoped to the specific task (not permanently), with automatic expiry. Task-scoped, auto-expiring permissions minimize blast radius if the agent is compromised or misbehaves."
+    },
+    {
+      "id": "m3q7",
+      "question": "During incident response, you discover an agent sent 15,000 customer records to an external API. What is the correct order of response steps?",
+      "options": [
+        "Investigate → Notify customers → Contain → Recover",
+        "Contain → Investigate → Recover → Notify affected parties",
+        "Recover → Contain → Investigate → Notify",
+        "Notify customers → Investigate → Contain → Recover"
+      ],
+      "correctAnswer": 1,
+      "explanation": "The correct order is: Contain (stop further damage first), Investigate (understand what happened), Recover (reverse reversible actions, notify affected parties). Investigating before containing allows more damage to occur. Recovering before investigating means you may recover incorrectly."
+    },
+    {
+      "id": "m3q8",
+      "question": "Which of the following is a correctly structured audit log entry for a guardrail block event?",
+      "options": [
+        "INFO 2026-03-25 14:35 Agent blocked from calling tool",
+        "A JSON entry with: event_id, event_type='guardrail.triggered', agent_id, task_id, timestamp, and payload including which guardrail fired, what was blocked, and why",
+        "An email alert sent to the security team",
+        "A comment in the agent's output saying 'action was blocked'"
+      ],
+      "correctAnswer": 1,
+      "explanation": "A proper audit log entry is structured JSON with a standard envelope (event_id, type, timestamp, attribution) and an event-specific payload. Free-text log lines (option A) are not queryable or tamper-evident. Email alerts (option C) are notifications, not audit records. Agent output comments (option D) are not tamper-evident and can be manipulated."
+    },
+    {
+      "id": "m3q9",
+      "question": "A topic restriction guardrail is implemented by adding 'do not discuss competitor products' to the agent's system prompt. Why is this insufficient?",
+      "options": [
+        "The system prompt is too short",
+        "LLM instructions can be forgotten in long contexts, overridden by prompt injection, or reasoned around — topic restrictions need programmatic enforcement",
+        "Competitor topics are not a compliance requirement",
+        "The agent needs to be fine-tuned instead"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Instructions in system prompts are not reliable guardrails. They can be: (1) forgotten as context grows, (2) overridden by prompt injection attacks, (3) reasoned around by the model if it believes it's 'helping' the user. Programmatic topic classification that runs before the LLM processes the message is the correct implementation."
+    },
+    {
+      "id": "m3q10",
+      "question": "Under the EU AI Act, which type of agentic system is most likely to require a conformity assessment before deployment?",
+      "options": [
+        "A chatbot that answers general knowledge questions",
+        "An agent that reviews job applications and recommends candidates for hiring",
+        "A code completion agent that suggests code completions to developers",
+        "An agent that generates marketing email drafts for human review"
+      ],
+      "correctAnswer": 1,
+      "explanation": "The EU AI Act classifies AI systems that make decisions about employment as 'high-risk,' requiring conformity assessments, technical documentation, and human oversight mechanisms. Job application review directly impacts employment decisions. General knowledge chatbots, code completion tools, and draft generation tools with human review are typically lower risk."
+    }
+  ]
+}

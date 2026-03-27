@@ -1,0 +1,127 @@
+{
+  "module": "module-02-human-in-the-loop",
+  "title": "Module 2 Assessment: Designing Human-in-the-Loop Controls",
+  "passing_threshold": 0.70,
+  "questions": [
+    {
+      "id": "m2q1",
+      "question": "An approval system sends 1,200 approval requests per month. Reviewing the last 90 days, 99.2% of requests were approved without modification, and 0 were rejected. What is the MOST LIKELY governance problem indicated by this data?",
+      "options": [
+        "The approval system is working correctly — high approval rates mean the agent is well-behaved",
+        "Approval fatigue — reviewers are approving without reading, which means the HITL control is providing no real oversight",
+        "The approval threshold is too high — the agent is taking too many autonomous actions without oversight",
+        "The approval system has a bug — 100% approval rates are impossible in a correctly functioning system"
+      ],
+      "correctAnswer": 1,
+      "explanation": "A near-100% approval rate with no rejections almost always indicates approval fatigue — reviewers have learned to approve by default because the volume is too high and most requests seem routine. The HITL control exists on paper but provides no real oversight. The correct response is to raise the approval threshold to reduce volume, add velocity checks to catch unusual patterns, and investigate whether the 0.8% that required modification indicates a class of decisions needing policy clarification."
+    },
+    {
+      "id": "m2q2",
+      "question": "An agent encounters a situation it has never handled before: an invoice with both software and hardware line items, when the policy only specifies single-category invoices. Which treatment is correct?",
+      "options": [
+        "Auto-approve — the agent should proceed with its best judgment to avoid operational delays",
+        "Auto + log — log the unusual input and continue; it can be reviewed retrospectively",
+        "Escalate to a specialist — novel situations outside the design envelope should be escalated, not resolved by the agent guessing",
+        "Terminate the run — the agent should stop entirely when it encounters unexpected inputs"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Novel situations fall in the High Uncertainty quadrant. When combined with any meaningful impact (financial decisions are medium-to-high impact), the correct treatment is escalation. The agent should produce a structured escalation request explaining the ambiguity and the specific policy gap. Auto-approving a novel situation invites errors; terminating the run is too disruptive when escalation can resolve it."
+    },
+    {
+      "id": "m2q3",
+      "question": "A reviewer approves an action verbally in a meeting and tells the engineer 'go ahead.' The engineer manually triggers the action. What governance problem does this create?",
+      "options": [
+        "None — verbal approval from a qualified reviewer is legally equivalent to a documented approval",
+        "A gap in the audit trail — the action executed without a recorded approval, breaking the chain of accountability",
+        "A conflict of interest — the engineer should not be involved in both the approval and execution",
+        "An access control violation — only the agent should be able to trigger approved actions"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Verbal approvals bypass the approval system, creating an audit trail gap. There is no record linking the action to an authorization. In a compliance review, you cannot prove the action was authorized. The approval system must be the path of least resistance — verbal approvals are a sign that the workflow is too cumbersome and reviewers are finding workarounds. The fix is both a process reminder (all approvals must go through the system) and a UX improvement (make the system easier to use than the workaround)."
+    },
+    {
+      "id": "m2q4",
+      "question": "An agent's escalation chain has three tiers: operations team (tier 1), operations director (tier 2), and COO (tier 3). All three tiers time out without responding. What must happen?",
+      "options": [
+        "The action should auto-approve — if nobody objected, it must be acceptable",
+        "The agent should retry the original tier-1 reviewers with increased urgency",
+        "The action must be auto-rejected and an incident record created — unanswered escalation chains must not result in silent approval",
+        "The agent should attempt the action with a reduced scope to minimize risk"
+      ],
+      "correctAnswer": 2,
+      "explanation": "An unanswered escalation chain that terminates in silent approval is a critical governance failure — it means any action can eventually execute if reviewers are unavailable. The terminal behavior of every escalation chain must be automatic rejection with an incident log entry. The incident record ensures that the pattern is investigated: why were all reviewers unavailable, and is the escalation routing correct?"
+    },
+    {
+      "id": "m2q5",
+      "question": "A constraint override is issued to allow an agent to bypass its $10,000 payment limit for an emergency vendor payment. The override is issued as a permanent configuration change rather than a run-scoped override. What risk does this create?",
+      "options": [
+        "None — once an emergency justifies an override, the threshold should be updated permanently",
+        "The override removes the payment limit for all future agent runs indefinitely, eliminating a key control that existed for good reasons",
+        "Permanent overrides require two-person authorization; single-person issuance is a process violation but not a risk",
+        "The override may conflict with other agents' configuration and cause inconsistent behavior across the system"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Constraint overrides must be scoped to a specific run and expire automatically when that run completes. A permanent configuration change 'in response to an emergency' is a common governance anti-pattern where short-term urgency systematically degrades long-term governance. The payment limit existed for good reasons (fraud prevention, error containment). Removing it permanently means every future run by that agent operates without the limit, often without anyone realizing the change was made."
+    },
+    {
+      "id": "m2q6",
+      "question": "An agent processing 100 invoices encounters failures on 12 of them. The agent's process_invoices() function returns a success response indicating all invoices were processed. What anti-pattern does this represent?",
+      "options": [
+        "Retry without bounds — the agent should have retried the 12 failed invoices before returning",
+        "Silent partial completion — reporting success when processing was incomplete is one of the most dangerous fallback anti-patterns",
+        "Over-escalation — partial failures in batch processing should not be escalated to humans",
+        "Scope boundary violation — the agent processed invoices outside its authorized scope"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Silent partial completion occurs when an agent reports success but only completed a subset of the work. The caller assumes all 100 invoices were processed, no follow-up occurs, and the 12 failed invoices are never reconciled. This can cause financial discrepancies, missed deadlines, and compliance gaps. The correct pattern is an explicit result structure distinguishing succeeded items, failed items, and a is_complete flag — ensuring the caller knows the exact state."
+    },
+    {
+      "id": "m2q7",
+      "question": "Which element of an approval request is MOST important for a reviewer to evaluate whether the agent's reasoning is correct?",
+      "options": [
+        "The action description — plain language summary of what the agent wants to do",
+        "The deadline — urgency information determines how quickly the reviewer needs to act",
+        "The context — the agent's reasoning that led to the proposed action, which lets the reviewer identify if the logic is flawed",
+        "The consequences if rejected — the fallback behavior helps reviewers understand the cost of refusal"
+      ],
+      "correctAnswer": 2,
+      "explanation": "The context (agent's reasoning) is the element that allows the reviewer to evaluate whether the agent's decision logic is correct, not just whether the proposed action seems reasonable in isolation. A reviewer who only sees the action description may approve an action that was correctly described but reached through flawed reasoning. Including the reasoning allows reviewers to catch the class of errors that look correct on the surface but aren't."
+    },
+    {
+      "id": "m2q8",
+      "question": "A reviewer approves a payment with a modification: changing the amount from $15,000 to $14,200. What must the audit log contain for this event to be compliance-ready?",
+      "options": [
+        "The final executed amount ($14,200) and the reviewer's identity",
+        "The original proposed amount ($15,000), the modified amount ($14,200), the executed amount ($14,200), the reviewer's identity, and the reason for modification — all linked to the action ID",
+        "The modification reason and the executed amount — the original amount is no longer relevant once overridden",
+        "A notation that the action was 'approved with changes' — the specific parameter values are implementation details"
+      ],
+      "correctAnswer": 1,
+      "explanation": "The audit log must contain all three states: what the agent proposed, what the human changed it to, and what was actually executed. This three-way record is required for compliance because: (1) it proves the human actually reviewed and modified the action rather than rubber-stamping, (2) it creates a traceable record of the original agent decision (useful for calibrating future agent behavior), and (3) it enables auditors to verify that executed actions matched approved (modified) parameters."
+    },
+    {
+      "id": "m2q9",
+      "question": "An organization tests its HITL controls with automated unit tests only. A quarterly compliance review finds that reviewers have been approving requests via forwarded emails rather than the approval system, creating audit trail gaps. What type of testing would have detected this?",
+      "options": [
+        "Integration tests — unit tests don't cover the notification delivery pathway",
+        "Tabletop exercises — simulating real operational conditions reveals human workarounds that automated tests cannot catch",
+        "Load tests — high volume would have surfaced the email workaround under production conditions",
+        "Security penetration testing — the email workaround is a security vulnerability that pen tests cover"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Tabletop exercises simulate real operational scenarios with real people and surface human workarounds — like emailing approvals — that automated tests cannot detect. Automated tests verify that the technical system works correctly; tabletop exercises verify that humans use the system correctly under realistic conditions. The finding that reviewers are forwarding approval emails indicates the approval UX is too cumbersome, which a tabletop exercise would have surfaced as friction."
+    },
+    {
+      "id": "m2q10",
+      "question": "An agent receives an escalation trigger for a novel situation. The escalation routing table maps 'novel_situation' to 'agent_system_owner', but that role is currently vacant. What should happen?",
+      "options": [
+        "The escalation should fail silently — escalation routing failures should not interrupt agent operation",
+        "The agent should fall back to auto-approve — if the designated reviewer is unavailable, the action should proceed",
+        "The escalation must reach an alternative authorized reviewer; no escalation chain should terminate at an empty role without a fallback contact",
+        "The agent should terminate all processing until the role is filled"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Escalation routing tables must have backup contacts for every role, and those contacts must be maintained as people change roles. An escalation that terminates at an empty role creates the same problem as a black-hole inbox — the action is stuck, and nobody is notified. The governance process must include role change notifications that trigger routing table updates. The immediate fix is a fallback to a default high-level reviewer (e.g., CISO or CTO) when the designated role is vacant."
+    }
+  ]
+}

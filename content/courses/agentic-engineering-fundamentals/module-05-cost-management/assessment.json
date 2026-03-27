@@ -1,0 +1,103 @@
+{
+  "module": "module-05-cost-management",
+  "title": "Module 5 Assessment: Cost Management and Optimization",
+  "passing_threshold": 0.70,
+  "questions": [
+    {
+      "id": "m5q1",
+      "question": "An agent's system prompt is 2,000 tokens and is used in 10,000 requests per day. After enabling provider-level prompt caching, what is the approximate cost reduction for the system prompt tokens in those requests?",
+      "options": [
+        "0% — caching is only applied to output tokens",
+        "50% — caching halves the cost",
+        "~90% — cached tokens cost approximately 10% of normal input token price",
+        "100% — cached tokens are free"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Provider-level prompt caching reduces cached token costs to approximately 10% of the normal input token price. For 2,000-token system prompts used 10,000 times, caching reduces those tokens from full price to ~10% price on the 9,999 requests that hit the cache (the first request computes the cache). That's approximately 90% reduction on system prompt costs."
+    },
+    {
+      "id": "m5q2",
+      "question": "Output tokens cost 5x more than input tokens. Your agent currently produces 800-token responses but you've determined that 300-token responses meet user needs. What is the approximate cost reduction for output costs?",
+      "options": [
+        "62.5% — you're reducing output from 800 to 300 tokens",
+        "No reduction — output token count doesn't affect cost",
+        "15% — output tokens are a small portion of total cost",
+        "100% — all output tokens are eliminated"
+      ],
+      "correctAnswer": 0,
+      "explanation": "Reducing output from 800 to 300 tokens is a 62.5% reduction in output token count (500/800 = 62.5%). Since output tokens cost 5x more than input tokens, this reduction has an outsized impact on total cost. If output was 20% of total token cost, a 62.5% reduction in output = 12.5% reduction in total cost."
+    },
+    {
+      "id": "m5q3",
+      "question": "You're building a cache key for agent responses. Which component should NOT be included in the cache key?",
+      "options": [
+        "task_type — different task types need different results",
+        "task_id — each task should return the same result regardless of its assigned ID",
+        "agent_version — different agent versions may produce different results",
+        "model — different models produce different results"
+      ],
+      "correctAnswer": 1,
+      "explanation": "task_id should NOT be in the cache key. The cache key should uniquely identify the *input*, not the specific task invocation. Two different tasks (different task_ids) with identical inputs, same agent version, and same model should return the same cached result. Including task_id would prevent cache hits for identical queries."
+    },
+    {
+      "id": "m5q4",
+      "question": "A classification task (categorize support tickets into 12 categories) is currently running on a frontier model ($0.015/1K input tokens). Testing shows a small model ($0.00025/1K input tokens) achieves 93% accuracy vs. 95% on frontier. What is the approximate cost ratio (small/frontier)?",
+      "options": [
+        "About 60x cheaper on the small model",
+        "About the same cost",
+        "About 2x cheaper on the small model",
+        "About 10x cheaper on the small model"
+      ],
+      "correctAnswer": 0,
+      "explanation": "$0.015 / $0.00025 = 60. The small model is 60x cheaper per 1K tokens. Whether the 2% quality difference (93% vs 95%) is acceptable depends on the use case. For most support ticket classification, 93% accuracy at 1/60th the cost is likely the right trade-off."
+    },
+    {
+      "id": "m5q5",
+      "question": "An agent task hits its token budget limit mid-execution. What is the appropriate behavior?",
+      "options": [
+        "Raise an exception and fail the task with no output",
+        "Silently return an empty result with success=true",
+        "Return the best partial result available with a clear budget-exceeded status",
+        "Double the token budget and retry"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Graceful degradation is the correct approach. An exception with no output (option A) leaves downstream systems with nothing. A silent empty success (option B) is misleading — the task didn't succeed. Doubling and retrying (option D) defeats the purpose of the budget. Returning the partial result with a clear budget-exceeded status lets callers make an informed decision about whether the partial result is useful."
+    },
+    {
+      "id": "m5q6",
+      "question": "Your semantic cache has a 0.92 similarity threshold and no entity validation. A user queries 'What are Acme's Q1 revenues?' and the cache returns results for 'What are Globex's Q1 revenues?' (which has 0.94 similarity). What went wrong?",
+      "options": [
+        "The similarity threshold is too high — lower it to 0.80",
+        "Semantic similarity alone cannot distinguish queries about different entities — entity validation is required",
+        "Semantic caching doesn't work for financial queries",
+        "The cache TTL expired too soon"
+      ],
+      "correctAnswer": 1,
+      "explanation": "This is a semantic cache false positive: two queries that are semantically similar in structure but expect different answers because they're about different entities (Acme vs. Globex). Entity validation is required: extract named entities from both queries and verify they match before treating the cache as a hit. A high similarity threshold helps but doesn't prevent this when entity names are substituted."
+    },
+    {
+      "id": "m5q7",
+      "question": "Which workload type is MOST suitable for batch processing with provider batch API discounts?",
+      "options": [
+        "A chatbot that responds to user messages in real time",
+        "A system that streams agent output character by character",
+        "Nightly annotation of 10,000 documents where results are needed by 8 AM",
+        "An emergency alert agent that must respond within 10 seconds"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Batch processing is ideal for workloads where responses can be delayed (up to 24 hours for most provider batch APIs). Nightly document annotation with an 8 AM deadline is a perfect fit: low urgency, high volume, and results aren't needed immediately. Real-time chatbots, streaming, and emergency alerts all require low-latency responses incompatible with batch processing."
+    },
+    {
+      "id": "m5q8",
+      "question": "You implement model right-sizing and switch your analysis agent from frontier to mid-tier. Initial tests show equivalent quality, but after two weeks in production, user satisfaction drops 15%. What is the likely explanation and appropriate response?",
+      "options": [
+        "Coincidence — satisfaction drops are unrelated to model changes",
+        "Production distribution shifted — some inputs require frontier-level reasoning that the mid-tier model handles poorly. Investigate failure patterns and either add task-level routing (frontier for complex inputs) or revert",
+        "The mid-tier model is broken — switch to a different mid-tier provider",
+        "Test more — two weeks is not enough data"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Production distribution often differs from test distribution. The 50 test examples may not have included the complex edge cases that appear in production. The appropriate response is: investigate the specific inputs that correlate with lower satisfaction, determine if those inputs require frontier-level reasoning, and either implement intelligent routing (frontier for complex, mid-tier for simple) or revert. Never silently accept quality regression."
+    }
+  ]
+}

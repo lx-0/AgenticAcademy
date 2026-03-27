@@ -6,6 +6,9 @@ import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { z } from "zod";
+import { sendEmail } from "@/lib/resend";
+import { WelcomeEmail } from "@/emails/welcome";
+import * as React from "react";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -31,13 +34,32 @@ export async function registerAction(
   const { name, email, password } = parsed.data;
   const hashedPassword = await bcrypt.hash(password, 12);
 
+  let userId: string;
   try {
-    await db.user.create({ data: { name, email, password: hashedPassword } });
+    const user = await db.user.create({ data: { name, email, password: hashedPassword } });
+    userId = user.id;
   } catch {
     return { error: "That email is already registered." };
   }
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://agentic.academy";
+  // Fire-and-forget — don't block the redirect
+  sendEmail({
+    to: email,
+    subject: "Welcome to AgenticAcademy!",
+    type: "welcome",
+    userId,
+    template: React.createElement(WelcomeEmail, {
+      name,
+      dashboardUrl: `${appUrl}/dashboard`,
+    }),
+  });
+
   redirect("/login?registered=true");
+}
+
+export async function oauthSignInAction(provider: "google" | "github" | "linkedin"): Promise<void> {
+  await signIn(provider, { redirectTo: "/dashboard" });
 }
 
 export async function loginAction(

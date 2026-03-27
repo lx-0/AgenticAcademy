@@ -51,19 +51,27 @@ export function OnboardingForm({ existing }: Props) {
   return (
     <form action={action} className="space-y-8">
       {state?.error && (
-        <div className="bg-red-50 text-red-700 text-sm px-4 py-3 rounded-lg border border-red-200">
+        <div
+          id="onboarding-error"
+          role="alert"
+          aria-live="polite"
+          className="bg-red-50 text-red-700 text-sm px-4 py-3 rounded-lg border border-red-200"
+        >
           {state.error}
         </div>
       )}
 
       {/* Role */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-2">
+        <label htmlFor="role" className="block text-sm font-medium text-gray-900 mb-2">
           What is your role?
         </label>
         <select
+          id="role"
           name="role"
           defaultValue={existing?.role ?? ""}
+          aria-invalid={state?.error ? true : undefined}
+          aria-describedby={state?.error ? "onboarding-error" : undefined}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
           required
         >
@@ -87,7 +95,7 @@ export function OnboardingForm({ existing }: Props) {
           {(["beginner", "intermediate", "advanced"] as const).map((level) => (
             <label
               key={level}
-              className="relative flex flex-col items-center gap-1 border border-gray-200 rounded-lg p-4 cursor-pointer hover:border-brand-400 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 transition-colors"
+              className="relative flex flex-col items-center gap-1 border border-gray-200 rounded-lg p-4 cursor-pointer hover:border-brand-400 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500 has-[:focus-visible]:ring-offset-2 transition-colors"
             >
               <input
                 type="radio"
@@ -147,7 +155,7 @@ export function OnboardingForm({ existing }: Props) {
           {(["slow", "moderate", "fast"] as const).map((pace) => (
             <label
               key={pace}
-              className="relative flex flex-col items-center gap-1 border border-gray-200 rounded-lg p-4 cursor-pointer hover:border-brand-400 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 transition-colors"
+              className="relative flex flex-col items-center gap-1 border border-gray-200 rounded-lg p-4 cursor-pointer hover:border-brand-400 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500 has-[:focus-visible]:ring-offset-2 transition-colors"
             >
               <input
                 type="radio"

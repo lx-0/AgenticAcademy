@@ -30,7 +30,12 @@ export function LoginForm({ callbackUrl }: Props) {
       )}
 
       {state?.error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+        <div
+          id="login-error"
+          role="alert"
+          aria-live="polite"
+          className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm"
+        >
           {state.error}
         </div>
       )}
@@ -48,6 +53,8 @@ export function LoginForm({ callbackUrl }: Props) {
           type="email"
           required
           autoComplete="email"
+          aria-invalid={state?.error ? true : undefined}
+          aria-describedby={state?.error ? "login-error" : undefined}
           className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-gray-900 placeholder-gray-400 text-sm"
           placeholder="you@example.com"
         />
@@ -66,6 +73,8 @@ export function LoginForm({ callbackUrl }: Props) {
           type="password"
           required
           autoComplete="current-password"
+          aria-invalid={state?.error ? true : undefined}
+          aria-describedby={state?.error ? "login-error" : undefined}
           className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-gray-900 placeholder-gray-400 text-sm"
           placeholder="••••••••"
         />

@@ -6,22 +6,29 @@ generator client {
 datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
-  extensions = [pgvector(map: "vector", schema: "extensions")]
+  extensions = [vector]
 }
 
 // Core user model — used by NextAuth credentials provider
 model User {
-  id                 String                @id @default(cuid())
-  name               String?
-  email              String                @unique
-  password           String?
-  role               UserRole              @default(learner)
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
-  enrollments        Enrollment[]
-  submissions        CredentialSubmission[]
-  reviews            SubmissionReview[]
-  learnerProfile     LearnerProfile?
+  id                     String                @id @default(cuid())
+  name                   String?
+  email                  String                @unique
+  password               String?
+  role                   UserRole              @default(learner)
+  subscriptionTier       SubscriptionTier      @default(free)
+  stripeCustomerId       String?               @unique
+  stripeSubscriptionId   String?               @unique
+  subscriptionEndsAt     DateTime?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  enrollments            Enrollment[]
+  submissions            CredentialSubmission[]
+  reviews                SubmissionReview[]
+  learnerProfile         LearnerProfile?
+  emailPreference        EmailPreference?
+  orgMemberships         OrgMembership[]
+  trackAssignments       TrackAssignment[]
 
   @@map("users")
 }
@@ -30,6 +37,13 @@ enum UserRole {
   learner
   reviewer
   admin
+}
+
+enum SubscriptionTier {
+  free
+  pro
+  enterprise_pilot
+  enterprise
 }
 
 // Public landing page waitlist
@@ -49,11 +63,14 @@ model Course {
   status      CourseStatus @default(draft)
   duration    Int?         // minutes
   imageUrl    String?
+  embedding   Unsupported("vector(1536)")?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-  modules       Module[]
-  enrollments   Enrollment[]
-  learningPaths LearningPath[]
+  modules            Module[]
+  enrollments        Enrollment[]
+  learningPaths      LearningPath[]
+  skillAssessments   SkillAssessment[]
+  analyticsSnapshots AnalyticsSnapshot[]
 
   @@map("courses")
 }
@@ -71,6 +88,7 @@ model Module {
   order       Int
   duration    Int?             // minutes
   courseId    String
+  embedding   Unsupported("vector(1536)")?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   course      Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -89,6 +107,7 @@ model Lesson {
   order     Int
   type      LessonType @default(text)
   moduleId  String
+  embedding Unsupported("vector(1536)")?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   module    Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
@@ -109,10 +128,12 @@ model Enrollment {
   status      EnrollmentStatus @default(active)
   enrolledAt  DateTime         @default(now())
   completedAt DateTime?
+  updatedAt   DateTime         @updatedAt
   user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   course      Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  progress    ModuleProgress[]
-  certificate Certificate?
+  progress         ModuleProgress[]
+  certificate      Certificate?
+  skillAssessments SkillAssessment[]
 
   @@unique([userId, courseId])
   @@map("enrollments")
@@ -368,4 +389,195 @@ model SubmissionReview {
   createdAt       DateTime             @default(now())
 
   @@map("submission_reviews")
+}
+
+// ─── M3: Skill Assessments + ROI Analytics ───────────────────────────────────
+
+enum AssessmentPhase {
+  pre
+  post
+}
+
+model SkillAssessment {
+  id           String          @id @default(cuid())
+  enrollmentId String
+  courseId     String
+  phase        AssessmentPhase
+  // array of { skillName, question, options[], correctIndex, explanation }
+  questions    Json            @default("[]")
+  completedAt  DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  enrollment   Enrollment      @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  course       Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  scores       SkillScore[]
+
+  @@unique([enrollmentId, phase])
+  @@map("skill_assessments")
+}
+
+model SkillScore {
+  id                String          @id @default(cuid())
+  skillAssessmentId String
+  skillName         String
+  score             Int             // 0–100
+  createdAt         DateTime        @default(now())
+  skillAssessment   SkillAssessment @relation(fields: [skillAssessmentId], references: [id], onDelete: Cascade)
+
+  @@map("skill_scores")
+}
+
+model AnalyticsSnapshot {
+  id                  String   @id @default(cuid())
+  courseId            String
+  snapshotAt          DateTime @default(now())
+  totalEnrollments    Int      @default(0)
+  completedCount      Int      @default(0)
+  completionRate      Float    @default(0)
+  avgPreScore         Float?
+  avgPostScore        Float?
+  avgImprovementPct   Float?
+  avgTimeToCompletion Float?   // days
+  createdAt           DateTime @default(now())
+  course              Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@map("analytics_snapshots")
+}
+
+// ─── M4: Team & Organization Management ──────────────────────────────────────
+
+enum OrgRole {
+  org_admin
+  manager
+  learner
+}
+
+enum BulkEnrollStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+model Organization {
+  id          String         @id @default(cuid())
+  name        String
+  domain      String?        @unique // e.g. "company.com" for domain-based auto-join
+  settings    Json           @default("{}")
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  memberships     OrgMembership[]
+  invites         OrgInvite[]
+  tracks          LearningTrack[]
+  bulkEnrollments BulkEnrollment[]
+
+  @@map("organizations")
+}
+
+model OrgMembership {
+  id       String       @id @default(cuid())
+  orgId    String
+  userId   String
+  role     OrgRole      @default(learner)
+  joinedAt DateTime     @default(now())
+  org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId])
+  @@map("org_memberships")
+}
+
+model OrgInvite {
+  id        String       @id @default(cuid())
+  orgId     String
+  token     String       @unique @default(cuid())
+  email     String?      // null = generic link; set = email-specific invite
+  role      OrgRole      @default(learner)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime     @default(now())
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("org_invites")
+}
+
+model LearningTrack {
+  id          String          @id @default(cuid())
+  orgId       String
+  name        String
+  description String?
+  courseIds   String[]        // ordered list of course IDs
+  roleTarget  String?         // e.g. "software engineer" — for role-based assignment
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  org         Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  assignments TrackAssignment[]
+
+  @@map("learning_tracks")
+}
+
+model TrackAssignment {
+  id         String        @id @default(cuid())
+  trackId    String
+  userId     String
+  assignedAt DateTime      @default(now())
+  track      LearningTrack @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([trackId, userId])
+  @@map("track_assignments")
+}
+
+model BulkEnrollment {
+  id           String           @id @default(cuid())
+  orgId        String
+  courseId     String
+  requestedBy  String           // userId of org_admin who triggered it
+  totalCount   Int
+  successCount Int              @default(0)
+  failedCount  Int              @default(0)
+  status       BulkEnrollStatus @default(pending)
+  results      Json             @default("[]") // [{ userId, email, status, enrollmentId? }]
+  createdAt    DateTime         @default(now())
+  completedAt  DateTime?
+  org          Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("bulk_enrollments")
+}
+
+// ─── M4: Email Notifications ──────────────────────────────────────────────────
+
+enum EmailType {
+  welcome
+  enrollment_confirmation
+  progress_nudge
+  module_completion
+  course_completion
+  assessment_results
+  admin_digest
+}
+
+model EmailPreference {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  nudges    Boolean  @default(true)   // opt out of progress_nudge and module_completion
+  digest    Boolean  @default(true)   // opt out of admin_digest
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_preferences")
+}
+
+model EmailLog {
+  id        String    @id @default(cuid())
+  userId    String?
+  email     String
+  type      EmailType
+  subject   String
+  status    String    @default("sent") // sent | failed
+  error     String?
+  createdAt DateTime  @default(now())
+
+  @@map("email_logs")
 }

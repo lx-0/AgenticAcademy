@@ -1,0 +1,127 @@
+{
+  "module": "module-03-audit-trails",
+  "title": "Module 3 Assessment: Audit Trails and Observability for Compliance",
+  "passing_threshold": 0.70,
+  "questions": [
+    {
+      "id": "m3q1",
+      "question": "A compliance auditor asks: 'For the loan decision made on March 15th, why did the agent approve it?' The engineering team shows the auditor the server log, which reads: '2026-03-15T14:23:07Z — POST /api/loan/evaluate — 200 OK'. What is wrong with this response?",
+      "options": [
+        "Nothing — the audit log confirms the decision was made at the correct time",
+        "The log only answers 'what happened' (a decision was made) but not 'why' (what reasoning and criteria produced the approval)",
+        "The log format is wrong — compliance logs must be in JSON, not raw HTTP access log format",
+        "The server log is not tamper-evident and therefore inadmissible as compliance evidence"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Auditors need answers to three questions: what happened, why, and could it be justified. The server log answers 'what' (a 200 OK response was returned) but provides no information about the decision reasoning, criteria applied, or policy basis. Decision provenance — the record of inputs considered, criteria checked, and reasoning — is required to answer 'why' and 'could it be justified.'"
+    },
+    {
+      "id": "m3q2",
+      "question": "An agentic system processes personal data of EU residents. The audit log stores customer email addresses in plaintext alongside every tool call record. This violates which GDPR principle?",
+      "options": [
+        "Purpose limitation — customer emails were collected for the service, not for audit logging",
+        "Data minimization — audit logs should not store more personal data than necessary; hashing or redaction should be used",
+        "Storage limitation — all personal data in logs must be deleted after 30 days",
+        "Both A and B — storing email in plaintext in audit logs violates multiple GDPR principles"
+      ],
+      "correctAnswer": 3,
+      "explanation": "Both purpose limitation (email was collected for the service, not for audit records) and data minimization (audit logs don't need plaintext PII — a hash allows correlation without exposure) are violated. The correct approach is to hash sensitive fields in audit records, allowing correlation (matching records that involve the same customer) without storing the actual PII. Retention policies must also be applied to audit records containing personal data."
+    },
+    {
+      "id": "m3q3",
+      "question": "Which of the following is the MOST reliable audit evidence for a compliance investigation?",
+      "options": [
+        "An engineer's written statement confirming the agent was configured correctly at the time of the decision",
+        "A dashboard screenshot taken during the incident period showing agent activity",
+        "System-generated, append-only log records with hash chain integrity verified",
+        "Reconstructed event records produced by replaying the agent against the same inputs"
+      ],
+      "correctAnswer": 2,
+      "explanation": "System-generated, append-only records with verified hash chain integrity are at the top of the audit evidence hierarchy. They are created automatically (not manually), cannot be retroactively modified (append-only), and integrity can be verified cryptographically (hash chain). Engineer statements are low-reliability post-hoc attestations. Screenshots are snapshots without provenance. Replayed records cannot be identical due to non-determinism and represent recreated evidence, not original evidence."
+    },
+    {
+      "id": "m3q4",
+      "question": "A loan applicant requests an explanation of why their application was automatically declined under GDPR Article 22. The engineering team says 'the LLM's chain-of-thought for that run is not stored — it's too expensive to log.' What is the problem with this response?",
+      "options": [
+        "GDPR Article 22 requires storing the full LLM chain-of-thought for all automated decisions",
+        "The right to explanation can be satisfied with structured decision provenance (inputs considered, criteria applied, reasoning summary) — not necessarily the full LLM chain-of-thought, but something must be logged",
+        "The engineering team is correct — LLM chain-of-thought storage is not required under GDPR",
+        "GDPR Article 22 only applies to decisions made by human employees, not automated systems"
+      ],
+      "correctAnswer": 1,
+      "explanation": "GDPR Article 22 requires the ability to provide a meaningful explanation for significant automated decisions. The full LLM chain-of-thought is not required — a structured decision provenance record (what inputs were considered, which criteria were applied and whether they passed or failed, a concise reasoning summary) is sufficient. The problem is that 'nothing is logged about why the decision was made' is not compliant. The solution is not to store raw LLM output, but to design structured provenance capture from the start."
+    },
+    {
+      "id": "m3q5",
+      "question": "An agent approved a payment in January under Policy v5.1, which had a $10,000 approval threshold. In March, Policy v6.0 raised the threshold to $15,000. An auditor reviewing the January payment asks whether the approval was policy-compliant. What must the audit record contain to answer this correctly?",
+      "options": [
+        "The current policy version — audits evaluate against current standards",
+        "The policy version in effect at the time of the decision and the threshold that applied on that date",
+        "Both policy versions with a note that the threshold was later changed",
+        "No policy version — the auditor's job is to determine which policy applies"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Decisions must be evaluated against the policy in effect at the time they were made. The audit record must include the policy version and threshold that applied on the decision date. Without this, retroactive policy changes can make previously compliant decisions appear non-compliant — or vice versa. Policy versioning is a reproducibility requirement: you need to be able to evaluate past decisions against past policies."
+    },
+    {
+      "id": "m3q6",
+      "question": "An audit log's hash chain shows a discontinuity between records 447 and 448 — the hash in record 448's `previous_event_hash` does not match record 447's `record_hash`. What are the possible explanations?",
+      "options": [
+        "A programming error in the hash chain implementation — this is a software bug, not a compliance issue",
+        "One of three scenarios: a record was deleted or modified between 447 and 448, a record was inserted out of order, or a logging system failure caused records to be lost — each with different implications for record reliability",
+        "The agent was restarted between records 447 and 448 — chain discontinuities always indicate system restarts",
+        "Record 447 was written by a different agent than record 448 — cross-agent chain continuity is not maintained"
+      ],
+      "correctAnswer": 1,
+      "explanation": "A hash chain discontinuity has three possible causes, each requiring different investigation: (1) modification or deletion — most serious, indicates potential tampering; (2) out-of-order insertion — indicates a logging sequencing bug; (3) logging failure/record loss — indicates records are missing. All three undermine the reliability of surrounding records. A chain integrity violation is a critical alert condition and should immediately trigger an investigation into which scenario occurred."
+    },
+    {
+      "id": "m3q7",
+      "question": "What does 'completeness' mean in the context of audit trail quality?",
+      "options": [
+        "All audit records contain all required fields with no null values",
+        "All agent actions are recorded — including actions in sub-agents, background processes, admin tools, and during startup/shutdown",
+        "The audit log covers the full retention period required by applicable regulations",
+        "Every user interaction with the agent is recorded, not just agent-initiated actions"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Completeness means all actions are recorded — not just the 'happy path' agent actions but also: sub-agent actions that may log independently, background processes, admin tool actions that bypass the normal agent path, and actions during startup/shutdown. A common completeness gap: developers wire audit logging into the main agent code but forget to instrument admin tools or direct API calls that also affect the system."
+    },
+    {
+      "id": "m3q8",
+      "question": "Which statement about compliance dashboards for different audiences is correct?",
+      "options": [
+        "A single dashboard design serves all audiences — compliance officers, engineers, and regulators all need the same data",
+        "Compliance officers need real-time metrics; engineers need weekly summaries; regulators need historical reports",
+        "Compliance officers need exception reports and trend summaries; engineers need real-time technical metrics; regulators need self-contained audit exports with chain integrity verification",
+        "Regulators have the highest technical proficiency and should receive the raw log data directly"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Different audiences have different needs, technical proficiency, and cadences. Compliance officers need dashboards showing system behavior against policy, exception reports, and trend charts — reviewed weekly. Engineers need real-time technical metrics for debugging and anomaly detection. Regulators/auditors need self-contained, non-technical reports or structured exports with chain integrity verification — requested ad hoc. Designing one dashboard for all three audiences typically serves none of them well."
+    },
+    {
+      "id": "m3q9",
+      "question": "An agent logs tool calls asynchronously using `asyncio.create_task(log_to_audit(result))`. What risk does this create?",
+      "options": [
+        "Performance degradation — asynchronous logging is slower than synchronous logging",
+        "Log entries may be lost if the process exits before the async task completes, or may be written out of sequence if tasks complete out of order — both undermine audit trail reliability",
+        "Asynchronous logging creates duplicate log entries if the task is retried",
+        "There is no risk — asynchronous logging is the recommended pattern for audit systems"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Fire-and-forget async logging (create_task without awaiting) has two failure modes: (1) if the process exits or crashes before the task executes, the audit record is lost permanently — creating a completeness gap; (2) if multiple async tasks complete out of order, sequence numbers in the audit log may not reflect actual execution order — breaking chain integrity. The correct approach is synchronous logging or a durable queue with at-least-once delivery semantics and explicit sequence tracking."
+    },
+    {
+      "id": "m3q10",
+      "question": "An organization runs consistency tests on their loan decision agent before deploying a model update. The tests show that 8 out of 10 runs for an applicant just below the credit score threshold return 'declined', but 2 out of 10 return 'approved'. What should the team do?",
+      "options": [
+        "Accept the result — 80% consistency is acceptable for LLM-based systems",
+        "Block the deployment — inconsistent enforcement of a policy boundary means the agent cannot be trusted to consistently apply credit policy, regardless of individual run quality",
+        "Increase the temperature setting — higher temperature will randomize results and average out to consistent outcomes",
+        "Add more test runs — 10 runs is not a sufficient sample size for consistency testing"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Policy boundaries must be consistently enforced. An applicant just below the credit score threshold must consistently receive 'declined' — not sometimes 'approved'. A 20% inconsistency rate at the policy boundary is a critical failure: it means similarly-situated applicants may receive different decisions based on random LLM variation, which is a fair lending concern and a GDPR Article 22 concern. The deployment must be blocked and the prompt or decision logic revised until boundary consistency is achieved."
+    }
+  ]
+}

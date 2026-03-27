@@ -1,0 +1,127 @@
+{
+  "module": "module-05-governance-operating-model",
+  "title": "Module 5 Assessment: Building a Governance Operating Model",
+  "passing_threshold": 0.70,
+  "questions": [
+    {
+      "id": "m5q1",
+      "question": "A governance board is composed entirely of legal and compliance professionals. Engineers present findings but cannot vote. What is the PRIMARY failure mode this creates?",
+      "options": [
+        "Legal liability increases when non-lawyers vote on compliance matters",
+        "Governance becomes bureaucratic gatekeeping — decisions are made without understanding implementation complexity, causing teams to bypass governance to maintain velocity",
+        "The board will approve too many high-risk deployments due to insufficient technical scrutiny",
+        "The board will be unable to meet EU AI Act requirements, which mandate technical representation"
+      ],
+      "correctAnswer": 1,
+      "explanation": "A governance board without engineering voting authority produces decisions that are technically uninformed. When engineers cannot vote, governance becomes something done *to* them rather than with them. Teams experience governance as arbitrary gatekeeping that doesn't account for implementation realities, creating pressure to bypass it. The result: governance exists on paper but doesn't reflect actual practice. Effective governance requires engineering, business, compliance, and risk representation with voting authority."
+    },
+    {
+      "id": "m5q2",
+      "question": "An organization has detailed governance policies documented in a wiki, but the policies are not implemented in code or configuration. When a policy violation occurs, it is discovered only during a retrospective audit. What AGMM level does this represent?",
+      "options": [
+        "Level 0: Absent — no governance infrastructure exists",
+        "Level 1: Documented Intent — policies exist in writing but are not enforced",
+        "Level 2: Partially Implemented — some implementation exists",
+        "Level 3: Consistently Operating — documentation is the baseline for consistent operation"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Level 1 (Documented Intent) is characterized by policies that exist in writing but are not enforced through implemented controls. The distinguishing test: 'Can you show me the access control list?' If the answer is 'it's in the policy document,' you're at Level 1. Violations discovered only in retrospective audits indicate monitoring is absent and controls are not enforcing the written policies."
+    },
+    {
+      "id": "m5q3",
+      "question": "Which of the following is MOST important for an effective policy-as-code implementation?",
+      "options": [
+        "Using a specialized policy language like Rego (OPA) rather than Python",
+        "Storing policies in the same repository as the agent code to keep them synchronized",
+        "Version control + automated tests that run on every policy change + deployment gates that require policy artifacts",
+        "Having a dedicated policy engineering team separate from the agent engineering team"
+      ],
+      "correctAnswer": 2,
+      "explanation": "The three essential elements of effective policy-as-code are: version control (so policy changes are tracked and reviewable), automated tests (so policy changes can be verified before deployment), and deployment gates (so agents cannot be deployed with non-compliant configurations). Without these three, policy-as-code is just policy stored in YAML — it doesn't enforce governance. The language (C) and team structure (D) are secondary to these fundamentals."
+    },
+    {
+      "id": "m5q4",
+      "question": "An agent incident occurs at 14:00 UTC. The engineering team is investigating the root cause when they discover the agent is still running. At 16:00 UTC, the root cause is identified. What is the PRIMARY mistake in this response?",
+      "options": [
+        "The team should have notified stakeholders before investigating",
+        "Two hours of investigation without containment means the agent continued causing harm for two hours — containment must precede investigation",
+        "The team should have escalated to management at 14:00 before taking any action",
+        "Root cause identification should happen within 1 hour for all incidents"
+      ],
+      "correctAnswer": 1,
+      "explanation": "The incident response principle is: contain first, investigate second. An agent that is still running during a two-hour investigation is still causing harm for those two hours. Containment (suspending the agent) does not require knowing the root cause — it requires recognizing that the agent is behaving harmfully. In this scenario, the harm that occurred between 14:00 and 16:00 was entirely preventable with immediate containment at 14:00."
+    },
+    {
+      "id": "m5q5",
+      "question": "An agent has been running in production for 3 months. The monitoring dashboard shows 847 alerts in the last month, with 842 acknowledged but only 12 resulting in any action. What governance problem does this indicate?",
+      "options": [
+        "The agents are behaving well — a 1.4% action rate suggests most alerts are correctly resolved as benign",
+        "Alert fatigue — 835 alerts that required acknowledgment but no action indicates thresholds are too sensitive, training responders to treat alerts as noise",
+        "Insufficient monitoring — 99% of alerts that are ignored means the monitoring system is working correctly but responders are overwhelmed",
+        "Governance board should be reviewing these alerts weekly to identify patterns"
+      ],
+      "correctAnswer": 1,
+      "explanation": "A 98.6% rate of alerts requiring no action is a clear alert fatigue indicator. Responders learn through experience that acknowledging alerts is routine and action is rarely needed — which means when a genuine alert fires, it receives the same automatic acknowledgment as the 98% of false positives. The fix is recalibration: raise thresholds for rules with high false positive rates, consolidate related alerts, and add better context to alert messages so responders can distinguish genuine signals from noise."
+    },
+    {
+      "id": "m5q6",
+      "question": "A GDPR breach notification window requires notification within 72 hours of becoming aware of a breach. An organization discovers a possible data breach at 09:00 Monday. By Wednesday 09:00 (72 hours later), they are still investigating and have not been able to determine the scope of the breach. What should they do?",
+      "options": [
+        "Continue investigating until scope is known before notifying — incomplete notifications are worse than late ones",
+        "Notify the supervisory authority by Wednesday 09:00 with available information, noting that investigation is ongoing and supplementary information will follow",
+        "Escalate to legal counsel who can request an extension of the 72-hour window from the regulator",
+        "Notify only if investigation confirms a breach occurred — the 72-hour window does not start until breach is confirmed"
+      ],
+      "correctAnswer": 1,
+      "explanation": "GDPR Article 33 requires notification within 72 hours 'where feasible,' and explicitly allows phased notifications when full information is not yet available. The notification should include what is known at the time, clearly note that investigation is ongoing, and commit to supplementary information as it becomes available. 'Waiting until we know everything' to make a timely notification is a common compliance failure. The 72-hour window begins when the controller 'becomes aware' — which is when they have sufficient confidence that a breach likely occurred, not when they have complete information."
+    },
+    {
+      "id": "m5q7",
+      "question": "An organization's post-incident review concludes: 'The on-call engineer should have caught the anomalous behavior faster.' What is wrong with this conclusion?",
+      "options": [
+        "Post-incident reviews should not assign blame to individuals — the conclusion should identify system or process failures",
+        "The conclusion is correct — human error is the root cause of most incidents",
+        "Post-incident reviews should focus on technical controls only, not human behavior",
+        "The conclusion is acceptable if the engineer was negligent, but not if the alert was unclear"
+      ],
+      "correctAnswer": 0,
+      "explanation": "Blameless post-incident reviews focus on system and process failures, not individual mistakes. 'The engineer should have caught it faster' is not an actionable finding — it cannot be tested, it doesn't produce controls, and it creates a culture where engineers fear taking responsibility for incidents. The correct framing: 'The alert threshold was too high, so the anomalous behavior pattern didn't trigger an alert until 90 minutes after it started. Action item: lower the threshold to X and add a faster escalation path.' This is testable, actionable, and improves the system."
+    },
+    {
+      "id": "m5q8",
+      "question": "What distinguishes Level 3 from Level 4 in the AGMM?",
+      "options": [
+        "Level 3 has controls in place; Level 4 has those controls automated",
+        "Level 3 operates consistently; Level 4 continuously improves — governance incidents produce measurable control improvements",
+        "Level 3 has a governance board; Level 4 has a governance board with executive reporting",
+        "Level 3 passes regulatory audits; Level 4 exceeds regulatory requirements"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Level 3 (Consistently Operating) means governance controls are in place and working consistently. Level 4 (Continuously Improving) adds the feedback loop: every incident or near-miss produces specific, measurable improvements to controls. The distinguishing question for Level 4 is 'How has your HITL coverage rate or approval quality changed over the last 6 months?' — if you can answer with a trend, and that trend shows improvement, you're at Level 4. Level 3 maintains; Level 4 improves."
+    },
+    {
+      "id": "m5q9",
+      "question": "An organization has a governance board that reviews all deployments, but the board's decisions are 'advisory.' Engineering teams acknowledge board decisions and then deploy according to their original plans. What enforcement mechanism would MOST directly address this?",
+      "options": [
+        "More frequent governance board meetings to increase board influence",
+        "Technical deployment gates in the CI/CD pipeline that block production deployment without a governance sign-off artifact",
+        "Making the board's chair position more senior (CISO rather than Engineering Lead)",
+        "Adding legal counsel to the board to increase the authority of board decisions"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Advisory governance boards are consistently ignored because there is no consequence for non-compliance. A technical deployment gate in the CI/CD pipeline makes compliance the path of least resistance: the pipeline fails to deploy unless a governance_approval_record artifact exists with the required sign-offs. This is not about authority or seniority — it is about making compliance automatic and non-bypassable. The board's decision is a prerequisite for the deployment system to proceed, not a recommendation."
+    },
+    {
+      "id": "m5q10",
+      "question": "An organization has been running agents without governance for 18 months and has significant governance debt. They propose a 3-month remediation sprint to 'fix everything at once.' What is the most likely outcome of this approach?",
+      "options": [
+        "Success — concentrated effort produces faster results than distributed improvement",
+        "Partial success — 3 months is sufficient for technical controls but not for organizational process changes",
+        "Failure — governance debt paydown sprints typically fail because they require sustained effort and organizational change, not a one-time fix; incremental sustained improvement is more effective",
+        "Unclear — depends entirely on the size of the team and available budget"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Governance debt paydown sprints consistently underperform because governance improvement has two components that cannot both be addressed in a sprint: (1) technical controls, which can be built in a sprint but require ongoing calibration and maintenance, and (2) organizational change — new board structures, new review processes, new incident response habits — which requires sustained practice over months, not a one-time implementation. Organizations that address governance debt through incremental sustained improvement (adding one layer of the governance stack per quarter, with clear success criteria) consistently outperform those that attempt big-bang remediation."
+    }
+  ]
+}

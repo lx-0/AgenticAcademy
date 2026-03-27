@@ -2,12 +2,18 @@ import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@agentic-academy/db";
 import Link from "next/link";
+import { MobileNav } from "@/components/mobile-nav";
 
 export const metadata = { title: "Dashboard — AgenticAcademy" };
 
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
+
+  const currentUser = await db.user.findUnique({
+    where: { id: session.user.id! },
+    select: { role: true },
+  });
 
   const [enrollments, learnerProfile, publishedCourseCount] = await Promise.all([
     db.enrollment.findMany({
@@ -43,11 +49,22 @@ export default async function DashboardPage() {
             <Link href="/courses" className="text-gray-600 hover:text-gray-900 transition-colors">
               Course Catalog
             </Link>
+            <Link href="/search" className="text-gray-600 hover:text-gray-900 transition-colors">
+              Search
+            </Link>
+            {currentUser?.role === "admin" && (
+              <Link href="/dashboard/analytics" className="text-gray-600 hover:text-gray-900 transition-colors">
+                Analytics
+              </Link>
+            )}
+            <Link href="/billing" className="text-gray-600 hover:text-gray-900 transition-colors">
+              Billing
+            </Link>
             <span className="text-gray-900 font-medium">Dashboard</span>
           </nav>
 
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">
+            <span className="hidden md:block text-sm text-gray-600">
               {session.user.name ?? session.user.email}
             </span>
             <form
@@ -55,6 +72,7 @@ export default async function DashboardPage() {
                 "use server";
                 await signOut({ redirectTo: "/" });
               }}
+              className="hidden md:block"
             >
               <button
                 type="submit"
@@ -63,6 +81,32 @@ export default async function DashboardPage() {
                 Sign out
               </button>
             </form>
+            <MobileNav
+              links={[
+                { href: "/courses", label: "Course Catalog" },
+                ...(currentUser?.role === "admin"
+                  ? [{ href: "/dashboard/analytics", label: "Analytics" }]
+                  : []),
+                { href: "/billing", label: "Billing" },
+                { href: "/dashboard", label: "Dashboard", current: true },
+              ]}
+              userDisplay={session.user.name ?? session.user.email ?? undefined}
+              signOutSlot={
+                <form
+                  action={async () => {
+                    "use server";
+                    await signOut({ redirectTo: "/" });
+                  }}
+                >
+                  <button
+                    type="submit"
+                    className="text-sm text-gray-500 hover:text-gray-900 transition-colors pb-1"
+                  >
+                    Sign out
+                  </button>
+                </form>
+              }
+            />
           </div>
         </div>
       </header>

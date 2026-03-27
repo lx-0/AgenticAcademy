@@ -48,3 +48,4 @@ export async function complete(
 export { Anthropic };
 export * from "./triage";
 export * from "./personalization";
+export * from "./embeddings";

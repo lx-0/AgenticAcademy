@@ -6,6 +6,10 @@ import { assessmentRouter } from "./assessment";
 import { certificateRouter } from "./certificate";
 import { credentialRouter } from "./credential";
 import { personalizationRouter } from "./personalization";
+import { analyticsRouter } from "./analytics";
+import { billingRouter } from "./billing";
+import { organizationRouter } from "./organization";
+import { searchRouter } from "./search";
 
 export const appRouter = createTRPCRouter({
   waitlist: waitlistRouter,
@@ -15,6 +19,10 @@ export const appRouter = createTRPCRouter({
   certificate: certificateRouter,
   credential: credentialRouter,
   personalization: personalizationRouter,
+  analytics: analyticsRouter,
+  billing: billingRouter,
+  organization: organizationRouter,
+  search: searchRouter,
 });
 
 export type AppRouter = typeof appRouter;

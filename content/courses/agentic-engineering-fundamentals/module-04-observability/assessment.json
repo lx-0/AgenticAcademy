@@ -1,0 +1,103 @@
+{
+  "module": "module-04-observability",
+  "title": "Module 4 Assessment: Observability and Debugging",
+  "passing_threshold": 0.70,
+  "questions": [
+    {
+      "id": "m4q1",
+      "question": "A multi-agent system produces an incorrect final answer. The SummarizerAgent's output is wrong, but investigation shows the SearchAgent returned empty results. The PlannerAgent wrote overly specific queries. Where is the root cause?",
+      "options": [
+        "The SummarizerAgent — it produced the wrong output",
+        "The SearchAgent — it returned empty results",
+        "The PlannerAgent — it wrote the overly specific queries that led to empty results",
+        "The user — they asked an ambiguous question"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Root cause analysis traces upstream to the earliest failure. The SummarizerAgent failed because SearchAgent returned empty results. SearchAgent returned empty results because PlannerAgent wrote overly specific queries. The PlannerAgent is the earliest failure in the chain. Fix the planner's query generation strategy, and the downstream failures disappear."
+    },
+    {
+      "id": "m4q2",
+      "question": "What is the correct sampling strategy for agent traces in a high-throughput production system?",
+      "options": [
+        "Sample 100% of all traces — you can't afford to miss failures",
+        "Sample 1% of all traces — most traces are routine and don't need analysis",
+        "Tail-based sampling: keep 100% of error and slow traces, sample a small % of normal traces",
+        "Head-based sampling at 10% — decide whether to trace before the request starts"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Tail-based sampling is optimal for agents: you make the sampling decision at the end of the request when you know the outcome. This lets you keep 100% of error and slow traces (the ones you need for debugging) while sampling normal traces at a low rate (5-10%) to control storage costs."
+    },
+    {
+      "id": "m4q3",
+      "question": "An agent's `agent_context_utilization_pct` metric is consistently at 88–95% for long-running tasks. What is the likely outcome and fix?",
+      "options": [
+        "No problem — 88–95% utilization is efficient use of the context window",
+        "Context overflow on some inputs, causing quality degradation or silent empty returns. Fix: implement context summarization and selective retention",
+        "The agent is not being given enough tasks. Fix: increase task assignment rate",
+        "The model needs to be upgraded to support larger context windows"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Context utilization consistently above 80% means the agent is frequently close to its limit. When a task pushes it over, it either fails with a context overflow error or degrades silently (the model operates on compressed context and misses important information). The fix is context management: summarize old context, retain only key facts, not full tool results."
+    },
+    {
+      "id": "m4q4",
+      "question": "In OpenTelemetry, what is the correct relationship between a trace, a span, and a trace_id?",
+      "options": [
+        "One span per trace; trace_id identifies the span",
+        "A trace is the collection of all spans sharing the same trace_id; spans are individual units of work within the trace",
+        "A trace_id is unique per agent; each agent has exactly one trace",
+        "Spans and traces are the same thing; trace_id and span_id are interchangeable"
+      ],
+      "correctAnswer": 1,
+      "explanation": "A trace is the complete picture of a request's execution from start to finish. It consists of multiple spans — each span represents a named unit of work (agent execution, tool call, etc.). All spans in a trace share the same trace_id. The span_id uniquely identifies each individual span."
+    },
+    {
+      "id": "m4q5",
+      "question": "You notice the same tool being called 15 times in a row in an agent's trace, with nearly identical inputs each time. What failure mode does this represent?",
+      "options": [
+        "Normal behavior — the agent is being thorough",
+        "Infinite tool-call loop — the agent is not recognizing task completion",
+        "Rate limiting — the tool is throttling and the agent is retrying",
+        "Parallelism — 15 concurrent calls are displayed sequentially in the trace"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Repeated calls to the same tool with nearly identical inputs indicate an infinite (or near-infinite) tool-call loop. The agent is not recognizing that the task is complete or that the tool isn't returning new information. Fix: add loop detection (if same tool called N times with similar inputs, force termination) and turn limits."
+    },
+    {
+      "id": "m4q6",
+      "question": "Which structured log event type should be used when an agent calls a tool that doesn't exist in the available tool set?",
+      "options": [
+        "tool.invoked (with success=false)",
+        "task.failed",
+        "agent.hallucinated_tool_call (or similar ERROR-level event)",
+        "context.updated"
+      ],
+      "correctAnswer": 2,
+      "explanation": "A hallucinated tool call is a specific, high-signal failure mode that deserves its own event type at ERROR level. Using tool.invoked with success=false obscures the specific nature of the failure (the tool doesn't exist, not just that it failed). Dedicated event types enable targeted alerting: alert specifically on hallucinated tool calls, not just any tool failure."
+    },
+    {
+      "id": "m4q7",
+      "question": "In a distributed trace, Agent A's span shows 3.2 seconds total duration. It has three child spans: Tool Call 1 (0.8s), Tool Call 2 (1.4s), and LLM Inference (0.5s). The remaining ~0.5s is unaccounted for. What should you investigate?",
+      "options": [
+        "The LLM inference — it's slower than expected",
+        "The 0.5s gap — this is untraced time that may indicate a missing span or I/O wait not captured in instrumentation",
+        "Tool Call 2 — it's the slowest child span",
+        "Nothing — a 0.5s gap is within normal variation"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Unaccounted time in a trace waterfall indicates missing instrumentation. The 0.5s could be: a tool call not wrapped in a span, time waiting for a lock or resource, context serialization, or agent initialization overhead. Investigating and instrumenting the gap gives you a complete picture of where time is spent."
+    },
+    {
+      "id": "m4q8",
+      "question": "An agent system has a task success rate of 98.5%. However, user satisfaction scores are declining. What observability gap might explain this discrepancy?",
+      "options": [
+        "The success rate metric is misconfigured",
+        "Silent wrong answers — the agent completes tasks (success=true) but produces incorrect outputs that users are dissatisfied with",
+        "The user satisfaction survey is flawed",
+        "Success rate and satisfaction are always correlated — this is impossible"
+      ],
+      "correctAnswer": 1,
+      "explanation": "This is the silent failure mode: the agent returns a non-empty result and marks the task successful, but the result is wrong or low quality. Success rate measures completion, not quality. Detecting this gap requires output quality metrics: confidence scores, human feedback integration, or automated output validation against expected patterns."
+    }
+  ]
+}

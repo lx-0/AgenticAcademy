@@ -1,0 +1,127 @@
+{
+  "module": "module-01-architecture",
+  "title": "Module 1 Assessment: Agent Architecture Patterns",
+  "passing_threshold": 0.70,
+  "questions": [
+    {
+      "id": "m1q1",
+      "question": "Which of the following BEST distinguishes an agent from a traditional LLM completion call?",
+      "options": [
+        "Agents use larger language models",
+        "Agents run in a perceive-reason-act loop until a goal is reached",
+        "Agents require a user interface",
+        "Agents can only execute a predetermined sequence of steps"
+      ],
+      "correctAnswer": 1,
+      "explanation": "The defining characteristic of an agent is its iterative loop — perceiving inputs, reasoning, acting, and repeating until a stopping condition is met. A single-shot completion call does none of this."
+    },
+    {
+      "id": "m1q2",
+      "question": "A system receives a document, extracts structured data, classifies the document type, and enriches it with external data before producing a final output. Each step is performed by a separate agent. What pattern is this?",
+      "options": [
+        "Orchestrator/Worker",
+        "Peer-to-Peer",
+        "Pipeline/Sequential",
+        "Hierarchical Manager/IC"
+      ],
+      "correctAnswer": 2,
+      "explanation": "The pipeline/sequential pattern arranges agents in a sequence where the output of Agent N becomes the input of Agent N+1. This describes a linear transformation sequence with no central coordinator."
+    },
+    {
+      "id": "m1q3",
+      "question": "You're building a system where 10 agents need to share research findings with each other dynamically. A peer-to-peer design is proposed. What is the PRIMARY risk?",
+      "options": [
+        "P2P agents cannot use tools",
+        "Coordination complexity grows quadratically and creates deadlock and cycle risks",
+        "P2P is too slow because agents can only communicate sequentially",
+        "P2P systems cannot handle more than 5 agents"
+      ],
+      "correctAnswer": 1,
+      "explanation": "In a fully connected P2P system with N agents, coordination links = N(N-1)/2. With 10 agents that's 45 channels. This creates deadlock risks, cycle risks, and makes observability extremely difficult."
+    },
+    {
+      "id": "m1q4",
+      "question": "An agent is assigned a research task but the task is too broad. The agent silently returns a partial answer without flagging that it is incomplete. This is an example of which failure mode?",
+      "options": [
+        "Context bleed",
+        "Over-delegation",
+        "Silent propagation",
+        "Ghost loop"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Silent propagation occurs when an agent fails to complete its task but returns a result that appears successful, propagating incomplete or incorrect information to downstream agents."
+    },
+    {
+      "id": "m1q5",
+      "question": "In the ReAct pattern, what is the purpose of the explicit 'Thought' step?",
+      "options": [
+        "To reduce token costs by caching reasoning",
+        "To make the agent's reasoning visible and debuggable before each action",
+        "To allow the agent to call multiple tools simultaneously",
+        "To automatically retry failed tool calls"
+      ],
+      "correctAnswer": 1,
+      "explanation": "The explicit Thought step in ReAct makes the agent's reasoning visible between each action. This improves debuggability (you can read where reasoning went wrong), consistency, and error recovery."
+    },
+    {
+      "id": "m1q6",
+      "question": "Which state type should be used when multiple concurrently running agents need to share intermediate results that persist across agent sessions?",
+      "options": [
+        "Ephemeral (in-context) state",
+        "Session state (in-memory)",
+        "Shared persistent state (external store)",
+        "Procedural state (system prompt)"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Shared persistent state in an external store is the correct choice when multiple concurrent agents need to share data that must survive across sessions. In-context is single-agent only. Session state is typically in-memory and not shared across agents."
+    },
+    {
+      "id": "m1q7",
+      "question": "An agent manages 60 tools, has a 15,000-token system prompt, and handles all business logic. What anti-pattern does this represent?",
+      "options": [
+        "Over-delegation",
+        "Monolithic agent soup",
+        "Context bleed",
+        "Chatty pipeline"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Monolithic agent soup: one agent with too many tools, an unmanageable system prompt, and responsibility for everything. The fix is to decompose by capability into specialized agents."
+    },
+    {
+      "id": "m1q8",
+      "question": "In a manager/IC tree, an IC agent in the Research subtree needs information from an IC agent in the Writing subtree. What is the correct communication path?",
+      "options": [
+        "The Research IC calls the Writing IC directly to minimize latency",
+        "The Research IC escalates to its Manager, which escalates to the CEO, which coordinates with the Writing Manager, which delegates to the Writing IC",
+        "Both IC agents read from a shared blackboard",
+        "The Writing IC proactively pushes its output to a shared registry that all agents can access"
+      ],
+      "correctAnswer": 1,
+      "explanation": "In hierarchical systems, communication flows up and down the chain — never laterally between IC agents in different subtrees. All cross-domain coordination goes through common ancestor agents (the CEO in this case)."
+    },
+    {
+      "id": "m1q9",
+      "question": "Which single-agent pattern is MOST appropriate for a task with 15 steps where steps 8 and 10 both depend on the output of step 5?",
+      "options": [
+        "Tool-use loop — it handles dependencies automatically",
+        "ReAct — the Thought step can track dependencies",
+        "Plan-and-execute — upfront planning can arrange steps in the correct dependency order",
+        "None — multi-agent systems are required for dependency handling"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Plan-and-execute is designed for tasks with complex dependencies. The planner can see the full task structure and arrange steps so dependencies are resolved before dependent steps execute."
+    },
+    {
+      "id": "m1q10",
+      "question": "When managing context window size in a long-running agent, which approach best preserves the most important information?",
+      "options": [
+        "Simple windowing — keep only the last 10 messages",
+        "Summarize older context while preserving the system prompt and original goal",
+        "Delete all context every 20 turns and restart fresh",
+        "Increase the model's context window by switching to a different API endpoint"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Summarizing older context while always preserving the system prompt and original goal gives the best trade-off: it reduces token usage while maintaining critical early context (the goal the agent is working toward) and recent context (the current state of execution)."
+    }
+  ]
+}
