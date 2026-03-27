@@ -1,8 +1,21 @@
 import { auth } from "@/auth";
 import { db } from "@agentic-academy/db";
-import { redirect, notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { AnalyticsDashboardClient } from "./analytics-dashboard-client";
+
+const FUNNEL_STAGES = [
+  "signup", "profile_setup", "pre_assessment_started", "pre_assessment_completed",
+  "course_enrolled", "module_started", "module_completed", "course_completed", "cert_downloaded",
+] as const;
+
+const DROP_OFF_THRESHOLDS: Partial<Record<string, number>> = {
+  "signup→profile_setup": 0.20,
+  "profile_setup→pre_assessment_started": 0.25,
+  "pre_assessment_completed→course_enrolled": 0.30,
+  "module_started→module_completed": 0.35,
+  "course_completed→cert_downloaded": 0.15,
+};
 
 export const metadata = { title: "Analytics Dashboard — AgenticAcademy" };
 
@@ -15,7 +28,7 @@ export default async function AnalyticsDashboardPage() {
     where: { id: session.user.id },
     select: { role: true, name: true, email: true },
   });
-  if (user?.role !== "admin") notFound();
+  if (user?.role !== "admin") redirect("/dashboard");
 
   // Fetch all published courses
   const courses = await db.course.findMany({
@@ -158,6 +171,37 @@ export default async function AnalyticsDashboardPage() {
     })
   );
 
+  // Funnel stats (last 30 days)
+  const FUNNEL_DAYS = 30;
+  const since = new Date(Date.now() - FUNNEL_DAYS * 24 * 60 * 60 * 1000);
+  const funnelCounts = await Promise.all(
+    FUNNEL_STAGES.map(async (stage) => {
+      const result = await db.funnelEvent.groupBy({
+        by: ["userId"],
+        where: { stage, occurredAt: { gte: since } },
+      });
+      return { stage, uniqueUsers: result.length };
+    })
+  );
+
+  const funnelRows = funnelCounts.map((c, i) => {
+    const prev = i > 0 ? funnelCounts[i - 1].uniqueUsers : c.uniqueUsers;
+    const dropoffRate = prev > 0 ? (prev - c.uniqueUsers) / prev : 0;
+    const transitionKey = i > 0 ? `${funnelCounts[i - 1].stage}→${c.stage}` : null;
+    const threshold = transitionKey ? DROP_OFF_THRESHOLDS[transitionKey] ?? null : null;
+    return {
+      stage: c.stage,
+      uniqueUsers: c.uniqueUsers,
+      dropoffRate: Math.round(dropoffRate * 100) / 100,
+      threshold,
+      breached: threshold !== null && dropoffRate > threshold,
+    };
+  });
+
+  const signupCount = funnelCounts.find((c) => c.stage === "signup")?.uniqueUsers ?? 0;
+  const certCount = funnelCounts.find((c) => c.stage === "cert_downloaded")?.uniqueUsers ?? 0;
+  const overallConversion = signupCount > 0 ? certCount / signupCount : 0;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200">
@@ -197,7 +241,12 @@ export default async function AnalyticsDashboardPage() {
             <p className="text-gray-500 mt-1">Publish a course to see analytics data here.</p>
           </div>
         ) : (
-          <AnalyticsDashboardClient courseData={courseData} />
+          <AnalyticsDashboardClient
+            courseData={courseData}
+            funnelRows={funnelRows}
+            overallConversion={overallConversion}
+            funnelDays={FUNNEL_DAYS}
+          />
         )}
       </main>
     </div>
