@@ -20,6 +20,12 @@ interface LearnerProgress {
   completedThisWeek: number;
 }
 
+interface FunnelAlert {
+  stage: string;
+  dropoffRate: number;
+  threshold: number;
+}
+
 interface AdminDigestEmailProps {
   orgName: string;
   weekEnding: string;
@@ -27,6 +33,9 @@ interface AdminDigestEmailProps {
   activeThisWeek: number;
   completionsThisWeek: number;
   learners: LearnerProgress[];
+  npsScore: number | null;
+  npsResponseRate: number;
+  funnelAlerts: FunnelAlert[];
 }
 
 export function AdminDigestEmail({
@@ -36,6 +45,9 @@ export function AdminDigestEmail({
   activeThisWeek,
   completionsThisWeek,
   learners,
+  npsScore,
+  npsResponseRate,
+  funnelAlerts,
 }: AdminDigestEmailProps) {
   return (
     <Html>
@@ -45,6 +57,8 @@ export function AdminDigestEmail({
         <Container style={container}>
           <Heading style={heading}>{orgName} — Weekly Learning Digest</Heading>
           <Text style={text}>Week ending {weekEnding}</Text>
+
+          {/* Core stats */}
           <Section style={statsRow}>
             <Row>
               <Column align="center">
@@ -59,8 +73,41 @@ export function AdminDigestEmail({
                 <Text style={statNum}>{completionsThisWeek}</Text>
                 <Text style={statLabel}>Completions</Text>
               </Column>
+              <Column align="center">
+                <Text style={{ ...statNum, color: npsScore !== null && npsScore >= 30 ? "#16a34a" : "#dc2626" }}>
+                  {npsScore !== null ? npsScore : "—"}
+                </Text>
+                <Text style={statLabel}>NPS score</Text>
+              </Column>
             </Row>
           </Section>
+
+          {/* NPS section */}
+          <Section style={{ margin: "16px 0" }}>
+            <Text style={{ ...text, fontWeight: "600" }}>NPS overview</Text>
+            <Text style={text}>
+              Response rate this week: <strong>{npsResponseRate}%</strong> (target: 30%)
+              {npsScore !== null && (
+                <> · NPS: <strong>{npsScore >= 0 ? "+" : ""}{npsScore}</strong></>
+              )}
+            </Text>
+          </Section>
+
+          {/* Drop-off alerts */}
+          {funnelAlerts.length > 0 && (
+            <Section style={{ backgroundColor: "#fff7ed", borderRadius: "8px", padding: "16px", margin: "16px 0", border: "1px solid #fed7aa" }}>
+              <Text style={{ ...text, fontWeight: "600", color: "#9a3412", margin: "0 0 8px" }}>
+                ⚠ Drop-off threshold breaches
+              </Text>
+              {funnelAlerts.map((a) => (
+                <Text key={a.stage} style={{ ...text, margin: "4px 0", fontSize: "13px", color: "#7c2d12" }}>
+                  • {a.stage}: {Math.round(a.dropoffRate * 100)}% drop-off (max {Math.round(a.threshold * 100)}%)
+                </Text>
+              ))}
+            </Section>
+          )}
+
+          {/* Team progress */}
           {learners.length > 0 && (
             <>
               <Text style={{ ...text, fontWeight: "600", marginTop: "24px" }}>
@@ -81,6 +128,7 @@ export function AdminDigestEmail({
               ))}
             </>
           )}
+
           <Hr style={hr} />
           <Text style={footer}>
             AgenticAcademy · To stop receiving weekly digests, update your admin preferences.

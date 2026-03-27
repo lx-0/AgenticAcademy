@@ -2,6 +2,82 @@
 
 import { useState } from "react";
 
+type FunnelRow = {
+  stage: string;
+  uniqueUsers: number;
+  dropoffRate: number;
+  threshold: number | null;
+  breached: boolean;
+};
+
+function FunnelPanel({ funnelRows, overallConversion, days }: { funnelRows: FunnelRow[]; overallConversion: number; days: number }) {
+  const STAGE_LABELS: Record<string, string> = {
+    signup: "Signup",
+    profile_setup: "Profile Setup",
+    pre_assessment_started: "Pre-Assessment Started",
+    pre_assessment_completed: "Pre-Assessment Completed",
+    course_enrolled: "Course Enrolled",
+    module_started: "Module Started",
+    module_completed: "Module Completed",
+    course_completed: "Course Completed",
+    cert_downloaded: "Certificate Downloaded",
+  };
+
+  const maxUsers = funnelRows[0]?.uniqueUsers ?? 1;
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-lg font-bold text-gray-900">Enrollment Funnel</h2>
+          <p className="text-sm text-gray-500 mt-0.5">Last {days} days · unique users per stage</p>
+        </div>
+        <div className="text-right">
+          <div className="text-2xl font-bold text-brand-600">{Math.round(overallConversion * 100)}%</div>
+          <div className="text-xs text-gray-500">signup → cert</div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {funnelRows.map((row) => {
+          const width = maxUsers > 0 ? (row.uniqueUsers / maxUsers) * 100 : 0;
+          return (
+            <div key={row.stage}>
+              <div className="flex items-center justify-between text-sm mb-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-700 font-medium">{STAGE_LABELS[row.stage] ?? row.stage}</span>
+                  {row.breached && (
+                    <span className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full font-medium">
+                      ⚠ Drop-off alert
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 text-xs">
+                  <span className="text-gray-500">{row.uniqueUsers.toLocaleString()} users</span>
+                  {row.dropoffRate > 0 && (
+                    <span className={`font-medium ${row.breached ? "text-red-600" : "text-gray-400"}`}>
+                      -{Math.round(row.dropoffRate * 100)}%
+                      {row.threshold !== null && (
+                        <span className="text-gray-400 font-normal"> (max {Math.round(row.threshold * 100)}%)</span>
+                      )}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="bg-gray-100 rounded-full h-2.5">
+                <div
+                  className={`h-2.5 rounded-full transition-all ${row.breached ? "bg-red-400" : "bg-brand-500"}`}
+                  style={{ width: `${width}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 type Learner = {
   enrollmentId: string;
   userName: string;
@@ -339,7 +415,17 @@ function CourseCard({ data }: { data: CourseData }) {
   );
 }
 
-export function AnalyticsDashboardClient({ courseData }: { courseData: CourseData[] }) {
+export function AnalyticsDashboardClient({
+  courseData,
+  funnelRows,
+  overallConversion,
+  funnelDays,
+}: {
+  courseData: CourseData[];
+  funnelRows: FunnelRow[];
+  overallConversion: number;
+  funnelDays: number;
+}) {
   // Top-line summary across all courses
   const totalEnrollments = courseData.reduce((s, c) => s + c.totalEnrollments, 0);
   const totalCompleted = courseData.reduce((s, c) => s + c.completedCount, 0);
@@ -391,6 +477,11 @@ export function AnalyticsDashboardClient({ courseData }: { courseData: CourseDat
           </div>
         ))}
       </div>
+
+      {/* Enrollment funnel */}
+      {funnelRows.length > 0 && (
+        <FunnelPanel funnelRows={funnelRows} overallConversion={overallConversion} days={funnelDays} />
+      )}
 
       {/* Per-course cards */}
       {courseData.map((data) => (

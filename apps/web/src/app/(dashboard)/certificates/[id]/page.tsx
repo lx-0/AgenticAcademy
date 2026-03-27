@@ -4,7 +4,6 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { PrintButton } from "./print-button";
 import { getBaseUrl, buildLinkedInUrl } from "@/lib/badges";
-
 export const metadata = { title: "Certificate — AgenticAcademy" };
 
 export default async function CertificatePage({ params }: { params: { id: string } }) {
@@ -60,7 +59,7 @@ export default async function CertificatePage({ params }: { params: { id: string
             >
               Back to course
             </Link>
-            <PrintButton />
+            <PrintButton userId={session.user.id} courseId={cert.enrollment.courseId} />
           </div>
         </div>
       </header>

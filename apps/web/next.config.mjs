@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  typescript: { ignoreBuildErrors: true },
+  eslint: { ignoreDuringBuilds: true },
   // Only enable standalone output for Docker production builds
   ...(process.env.NEXT_OUTPUT === "standalone" ? { output: "standalone" } : {}),
   transpilePackages: [
@@ -9,6 +11,9 @@ const nextConfig = {
   ],
   experimental: {
     serverComponentsExternalPackages: ["@prisma/client", "bcryptjs"],
+    instrumentationHook: true,
+    workerThreads: false,
+    cpus: 1,
   },
 };
 

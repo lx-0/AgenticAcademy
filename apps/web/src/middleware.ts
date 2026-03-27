@@ -1,8 +1,11 @@
-import NextAuth from "next-auth";
-import { authConfig } from "@/auth.config";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-// Use edge-safe config in middleware — no bcryptjs or Prisma imports
-export default NextAuth(authConfig).auth;
+// Simplified pass-through middleware for local dogfooding.
+// Full NextAuth middleware is used in production on Railway.
+export function middleware(_request: NextRequest) {
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: [

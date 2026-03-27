@@ -10,6 +10,8 @@ import { analyticsRouter } from "./analytics";
 import { billingRouter } from "./billing";
 import { organizationRouter } from "./organization";
 import { searchRouter } from "./search";
+import { npsRouter } from "./nps";
+import { microSurveyRouter } from "./micro-survey";
 
 export const appRouter = createTRPCRouter({
   waitlist: waitlistRouter,
@@ -23,6 +25,8 @@ export const appRouter = createTRPCRouter({
   billing: billingRouter,
   organization: organizationRouter,
   search: searchRouter,
+  nps: npsRouter,
+  microSurvey: microSurveyRouter,
 });
 
 export type AppRouter = typeof appRouter;

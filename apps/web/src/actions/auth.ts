@@ -8,6 +8,7 @@ import { AuthError } from "next-auth";
 import { z } from "zod";
 import { sendEmail } from "@/lib/resend";
 import { WelcomeEmail } from "@/emails/welcome";
+import { trackFunnelEvent } from "@/lib/funnel";
 import * as React from "react";
 
 const registerSchema = z.object({
@@ -41,6 +42,8 @@ export async function registerAction(
   } catch {
     return { error: "That email is already registered." };
   }
+
+  trackFunnelEvent({ userId, stage: "signup" });
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://agentic.academy";
   // Fire-and-forget — don't block the redirect

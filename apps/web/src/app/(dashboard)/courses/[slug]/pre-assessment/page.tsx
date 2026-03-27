@@ -3,6 +3,7 @@ import { db } from "@agentic-academy/db";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { SkillAssessmentQuiz } from "./skill-assessment-quiz";
+import { trackFunnelEvent } from "@/lib/funnel";
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   return { title: "Pre-Assessment — AgenticAcademy" };
@@ -82,6 +83,8 @@ export default async function PreAssessmentPage({ params }: { params: { slug: st
     where: { enrollmentId_phase: { enrollmentId: enrollment.id, phase: "pre" } },
   });
   if (existing?.completedAt) redirect(`/courses/${params.slug}`);
+
+  trackFunnelEvent({ userId: session.user.id, stage: "pre_assessment_started", courseId: course.id });
 
   return (
     <div className="min-h-screen bg-gray-50">

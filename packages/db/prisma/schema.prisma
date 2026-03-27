@@ -134,6 +134,7 @@ model Enrollment {
   progress         ModuleProgress[]
   certificate      Certificate?
   skillAssessments SkillAssessment[]
+  npsSurvey        NpsSurvey?
 
   @@unique([userId, courseId])
   @@map("enrollments")
@@ -555,6 +556,87 @@ enum EmailType {
   course_completion
   assessment_results
   admin_digest
+  nps_survey
+}
+
+// ─── Beta Analytics Instrumentation ──────────────────────────────────────────
+
+enum FunnelStage {
+  signup
+  profile_setup
+  pre_assessment_started
+  pre_assessment_completed
+  course_enrolled
+  module_started
+  module_completed
+  course_completed
+  cert_downloaded
+}
+
+model FunnelEvent {
+  id         String      @id @default(cuid())
+  userId     String
+  stage      FunnelStage
+  courseId   String?
+  moduleId   String?
+  metadata   Json        @default("{}")
+  occurredAt DateTime    @default(now())
+
+  @@index([stage, occurredAt])
+  @@index([userId, stage])
+  @@map("funnel_events")
+}
+
+enum NpsSurveyStatus {
+  pending
+  sent
+  responded
+  skipped
+}
+
+model NpsSurvey {
+  id            String          @id @default(cuid())
+  userId        String
+  enrollmentId  String          @unique
+  status        NpsSurveyStatus @default(pending)
+  scheduledAt   DateTime
+  sentAt        DateTime?
+  respondedAt   DateTime?
+  score         Int?            // 0–10 NPS score
+  reasonText    String?         // "What's the main reason for your score?"
+  improveText   String?         // "What could we improve?"
+  recommendText String?         // "Would you recommend this to a colleague?"
+  createdAt     DateTime        @default(now())
+  enrollment    Enrollment      @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@index([status, scheduledAt])
+  @@index([userId])
+  @@map("nps_surveys")
+}
+
+model MicroSurveyQuestion {
+  id        String                @id @default(cuid())
+  question  String
+  isActive  Boolean               @default(true)
+  sortOrder Int                   @default(0)
+  createdAt DateTime              @default(now())
+  responses MicroSurveyResponse[]
+
+  @@map("micro_survey_questions")
+}
+
+model MicroSurveyResponse {
+  id         String              @id @default(cuid())
+  userId     String
+  moduleId   String
+  questionId String
+  rating     Int                 // 1–5
+  comment    String?
+  createdAt  DateTime            @default(now())
+  question   MicroSurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, moduleId])
+  @@map("micro_survey_responses")
 }
 
 model EmailPreference {

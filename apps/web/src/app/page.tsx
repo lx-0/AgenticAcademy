@@ -257,7 +257,7 @@ export default async function HomePage() {
 
           <div className="text-center mt-8">
             <a
-              href="/login"
+              href="/register"
               className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-medium px-6 py-3 rounded-lg transition-colors text-sm"
             >
               Join the waitlist to get early access

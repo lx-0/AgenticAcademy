@@ -8,6 +8,7 @@ import { sendEmail } from "@/lib/resend";
 import { EnrollmentConfirmationEmail } from "@/emails/enrollment-confirmation";
 import { ModuleCompletionEmail } from "@/emails/module-completion";
 import { CourseCompletionEmail } from "@/emails/course-completion";
+import { trackFunnelEvent } from "@/lib/funnel";
 import * as React from "react";
 
 export async function enrollAction(courseId: string): Promise<{ error?: string }> {
@@ -57,6 +58,7 @@ export async function enrollAction(courseId: string): Promise<{ error?: string }
   }
 
   if (isNewEnrollment) {
+    trackFunnelEvent({ userId: session.user.id, stage: "course_enrolled", courseId });
     const user = await db.user.findUnique({
       where: { id: session.user.id },
       select: { email: true, name: true },
@@ -119,6 +121,13 @@ export async function markLessonReadAction(
     },
   });
 
+  trackFunnelEvent({
+    userId: session.user.id!,
+    stage: "module_completed",
+    courseId: enrollment.course.id,
+    moduleId,
+  });
+
   // If no assessment and all modules are now complete, finalize enrollment
   if (!assessment) {
     const completedCount = await db.moduleProgress.count({
@@ -127,6 +136,7 @@ export async function markLessonReadAction(
     const courseComplete = completedCount >= enrollment.course.modules.length;
 
     if (courseComplete) {
+      trackFunnelEvent({ userId: session.user.id!, stage: "course_completed", courseId: enrollment.course.id });
       await db.enrollment.update({
         where: { id: enrollmentId },
         data: { status: "completed", completedAt: new Date() },

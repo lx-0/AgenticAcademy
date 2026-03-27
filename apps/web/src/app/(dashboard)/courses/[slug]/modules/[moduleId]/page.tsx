@@ -6,6 +6,8 @@ import { MarkCompleteButton } from "./mark-complete-button";
 import { MobileModulesNav } from "@/components/mobile-modules-nav";
 import { RelatedModules } from "./related-modules";
 import { StudyAssistantWidget } from "./study-assistant";
+import { trackFunnelEvent } from "@/lib/funnel";
+import { MicroSurvey } from "@/components/micro-survey";
 
 export async function generateMetadata({
   params,
@@ -63,6 +65,11 @@ export default async function ModuleViewerPage({
 
   const moduleProgress = progressMap.get(mod.id);
   const isComplete = moduleProgress?.status === "completed";
+
+  // Track module_started on first view (not already completed)
+  if (!isComplete) {
+    trackFunnelEvent({ userId: session.user.id, stage: "module_started", courseId: course.id, moduleId: mod.id });
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -220,6 +227,11 @@ export default async function ModuleViewerPage({
               )}
             </div>
           </div>
+
+          {/* Post-module micro-survey */}
+          {isComplete && (
+            <MicroSurvey moduleId={mod.id} />
+          )}
 
           {/* Prev/Next navigation */}
           <div className="flex items-center justify-between gap-4">

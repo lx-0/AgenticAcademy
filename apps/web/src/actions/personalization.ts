@@ -5,6 +5,7 @@ import { db } from "@agentic-academy/db";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { generateLearningPath, recommendNextModule, type ModuleContext } from "@agentic-academy/ai";
+import { trackFunnelEvent } from "@/lib/funnel";
 
 const profileSchema = z.object({
   role: z.string().min(1, "Role is required").max(100),
@@ -37,6 +38,8 @@ export async function upsertProfileAction(
     create: { userId: session.user.id, ...parsed.data },
     update: parsed.data,
   });
+
+  trackFunnelEvent({ userId: session.user.id, stage: "profile_setup" });
 
   redirect("/dashboard");
 }

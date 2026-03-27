@@ -4,9 +4,23 @@ import { sendEmail } from "@/lib/resend";
 import { AdminDigestEmail } from "@/emails/admin-digest";
 import * as React from "react";
 
+const DROP_OFF_THRESHOLDS: Record<string, number> = {
+  "signup→profile_setup": 0.20,
+  "profile_setup→pre_assessment_started": 0.25,
+  "pre_assessment_completed→course_enrolled": 0.30,
+  "module_started→module_completed": 0.35,
+  "course_completed→cert_downloaded": 0.15,
+};
+
+const FUNNEL_STAGES = [
+  "signup", "profile_setup", "pre_assessment_started", "pre_assessment_completed",
+  "course_enrolled", "module_started", "module_completed", "course_completed", "cert_downloaded",
+] as const;
+
 /**
  * POST /api/cron/admin-digest
  * Send weekly team progress digest to enterprise admin users.
+ * Includes: completion stats, NPS trend, and drop-off funnel alerts.
  *
  * Invoke weekly via cron with:
  *   Authorization: Bearer <CRON_SECRET>
@@ -21,14 +35,53 @@ export async function POST(req: NextRequest) {
   }
 
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://agentic.academy";
   const weekEnding = new Date().toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric",
   });
 
-  // Find all admin users with enterprise/enterprise_pilot tier
+  // ── NPS stats ────────────────────────────────────────────────────────────────
+  const npsResponded = await db.npsSurvey.findMany({
+    where: { status: "responded", score: { not: null }, respondedAt: { gte: oneWeekAgo } },
+    select: { score: true },
+  });
+  const npsSent = await db.npsSurvey.count({
+    where: { status: { in: ["sent", "responded"] }, sentAt: { gte: oneWeekAgo } },
+  });
+  const npsScores = npsResponded.map((s) => s.score as number);
+  const promoters = npsScores.filter((s) => s >= 9).length;
+  const detractors = npsScores.filter((s) => s <= 6).length;
+  const npsScore =
+    npsScores.length > 0
+      ? Math.round(((promoters - detractors) / npsScores.length) * 100)
+      : null;
+  const npsResponseRate = npsSent > 0 ? Math.round((npsResponded.length / npsSent) * 100) : 0;
+
+  // ── Funnel drop-off alerts (last 7 days) ─────────────────────────────────────
+  const funnelCounts = await Promise.all(
+    FUNNEL_STAGES.map(async (stage) => {
+      const result = await db.funnelEvent.groupBy({
+        by: ["userId"],
+        where: { stage, occurredAt: { gte: oneWeekAgo } },
+      });
+      return { stage, uniqueUsers: result.length };
+    })
+  );
+
+  const funnelAlerts: { stage: string; dropoffRate: number; threshold: number }[] = [];
+  for (let i = 1; i < funnelCounts.length; i++) {
+    const prev = funnelCounts[i - 1].uniqueUsers;
+    const curr = funnelCounts[i].uniqueUsers;
+    const dropoffRate = prev > 0 ? (prev - curr) / prev : 0;
+    const key = `${funnelCounts[i - 1].stage}→${funnelCounts[i].stage}`;
+    const threshold = DROP_OFF_THRESHOLDS[key];
+    if (threshold !== undefined && dropoffRate > threshold) {
+      funnelAlerts.push({ stage: key, dropoffRate, threshold });
+    }
+  }
+
+  // ── Learner activity ──────────────────────────────────────────────────────────
   const admins = await db.user.findMany({
     where: {
       role: "admin",
@@ -42,24 +95,18 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Org-level stats
   const totalLearners = await db.user.count({ where: { role: "learner" } });
   const completionsThisWeek = await db.enrollment.count({
     where: { status: "completed", completedAt: { gte: oneWeekAgo } },
   });
 
-  // Enrollments updated this week (active learners)
   const recentEnrollments = await db.enrollment.findMany({
     where: { updatedAt: { gte: oneWeekAgo } },
-    include: {
-      user: { select: { id: true, name: true, email: true } },
-    },
+    include: { user: { select: { id: true, name: true, email: true } } },
   });
 
-  // Unique active user count
   const activeUserIds = new Set(recentEnrollments.map((e) => e.userId));
 
-  // Build per-learner summary
   const learnerMap = new Map<
     string,
     { name: string; email: string; activeEnrollments: number; completedThisWeek: number }
@@ -96,10 +143,13 @@ export async function POST(req: NextRequest) {
         activeThisWeek: activeUserIds.size,
         completionsThisWeek,
         learners,
+        npsScore,
+        npsResponseRate,
+        funnelAlerts,
       }),
     });
     sent++;
   }
 
-  return NextResponse.json({ digestsSent: sent });
+  return NextResponse.json({ digestsSent: sent, npsScore, funnelAlerts: funnelAlerts.length });
 }

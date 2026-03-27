@@ -2,6 +2,7 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/trpc";
 import { db } from "@agentic-academy/db";
 import { TRPCError } from "@trpc/server";
+import { trackFunnelEvent } from "@/lib/funnel";
 
 // Default skill assessment questions for a course (used when no custom questions exist)
 const DEFAULT_SKILL_QUESTIONS = [
@@ -144,6 +145,11 @@ export const analyticsRouter = createTRPCRouter({
           score: s.score,
         })),
       });
+
+      // Track funnel event for pre-assessment completion
+      if (input.phase === "pre") {
+        trackFunnelEvent({ userId, stage: "pre_assessment_completed", courseId: input.courseId });
+      }
 
       // For post-assessment: issue certificate now that we have both assessments
       if (input.phase === "post") {
@@ -417,5 +423,75 @@ export const analyticsRouter = createTRPCRouter({
       });
 
       return snapshot;
+    }),
+
+  // Admin: enrollment funnel counts and drop-off rates
+  getFunnelStats: protectedProcedure
+    .input(z.object({ days: z.number().int().min(1).max(365).default(30) }))
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.session.user?.id;
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+      const user = await db.user.findUnique({ where: { id: userId }, select: { role: true } });
+      if (user?.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+
+      const since = new Date(Date.now() - input.days * 24 * 60 * 60 * 1000);
+
+      const stages = [
+        "signup",
+        "profile_setup",
+        "pre_assessment_started",
+        "pre_assessment_completed",
+        "course_enrolled",
+        "module_started",
+        "module_completed",
+        "course_completed",
+        "cert_downloaded",
+      ] as const;
+
+      // Count distinct users per stage in the window
+      const counts = await Promise.all(
+        stages.map(async (stage) => {
+          const result = await db.funnelEvent.groupBy({
+            by: ["userId"],
+            where: { stage, occurredAt: { gte: since } },
+          });
+          return { stage, uniqueUsers: result.length };
+        })
+      );
+
+      // Drop-off thresholds from AGE-40 Section 4.2
+      const THRESHOLDS: Partial<Record<string, number>> = {
+        "signup→profile_setup": 0.20,
+        "profile_setup→pre_assessment_started": 0.25,
+        "pre_assessment_completed→course_enrolled": 0.30,
+        "module_started→module_completed": 0.35,
+        "course_completed→cert_downloaded": 0.15,
+      };
+
+      const stageMap = Object.fromEntries(counts.map((c) => [c.stage, c.uniqueUsers]));
+
+      const funnelRows = counts.map((c, i) => {
+        const prev = i > 0 ? counts[i - 1].uniqueUsers : c.uniqueUsers;
+        const dropoffRate = prev > 0 ? (prev - c.uniqueUsers) / prev : 0;
+        const transitionKey = i > 0 ? `${counts[i - 1].stage}→${c.stage}` : null;
+        const threshold = transitionKey ? THRESHOLDS[transitionKey] ?? null : null;
+        const breached = threshold !== null && dropoffRate > threshold;
+
+        return {
+          stage: c.stage,
+          uniqueUsers: c.uniqueUsers,
+          dropoffRate: Math.round(dropoffRate * 100) / 100,
+          threshold,
+          breached,
+        };
+      });
+
+      // Overall funnel conversion (signup → cert_downloaded)
+      const signupCount = stageMap["signup"] ?? 0;
+      const certCount = stageMap["cert_downloaded"] ?? 0;
+      const overallConversion = signupCount > 0 ? certCount / signupCount : 0;
+
+      return { funnelRows, overallConversion, days: input.days };
     }),
 });
