@@ -134,7 +134,7 @@ export default async function CertificatePage({ params }: { params: { id: string
           >
             ← Dashboard
           </Link>
-          <PrintButton />
+          <PrintButton userId={cert.enrollment.userId} courseId={cert.enrollment.courseId} />
           <Link
             href={verifyUrl}
             target="_blank"
